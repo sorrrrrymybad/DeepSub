@@ -1,0 +1,52 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: '#f9f9f9',
+        'on-background': '#2d3435',
+        surface: '#f9f9f9',
+        'on-surface': '#2d3435',
+        'surface-variant': '#dde4e5',
+        'on-surface-variant': '#5a6061',
+        'inverse-surface': '#0c0f0f',
+        'inverse-on-surface': '#9c9d9d',
+        'surface-container-lowest': '#ffffff',
+        'surface-container-low': '#f2f4f4',
+        'surface-container': '#ebeeef',
+        'surface-container-high': '#e4e9ea',
+        'surface-container-highest': '#dde4e5',
+        primary: '#a600ff',
+        'on-primary': '#f8f7ff',
+        'primary-container': '#dde1ff',
+        'on-primary-container': '#0041d0',
+        'primary-dim': '#0042d1',
+        secondary: '#262626',
+        'on-secondary': '#fbf8f8',
+        'secondary-container': '#e4e2e1',
+        'on-secondary-container': '#525151',
+        'secondary-dim': '#535353',
+        tertiary: '#E5E5E5',
+        'on-tertiary': '#f9f9f9',
+        'tertiary-container': '#f4f3f3',
+        'on-tertiary-container': '#5a5c5c',
+        'tertiary-dim': '#525354',
+        error: '#9f403d',
+        'on-error': '#fff7f6',
+        'error-container': '#fe8983',
+        'on-error-container': '#752121',
+        'error-dim': '#4e0309',
+        outline: '#757c7d',
+        'outline-variant': '#adb3b4',
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      }
+    },
+  },
+  plugins: [],
+}
