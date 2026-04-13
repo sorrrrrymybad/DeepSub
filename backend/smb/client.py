@@ -25,7 +25,14 @@ class SMBClient:
         self.domain = domain or ""
         self._smbclient = None
 
+    def _validate_config(self) -> None:
+        if not self.host.strip():
+            raise SMBConnectionError("SMB host is required")
+        if not self.share.strip():
+            raise SMBConnectionError("SMB share is required")
+
     def connect(self) -> None:
+        self._validate_config()
         try:
             import smbclient
 
@@ -36,15 +43,24 @@ class SMBClient:
                 port=self.port,
             )
             self._smbclient = smbclient
+        except SMBConnectionError:
+            raise
         except Exception as exc:
             raise SMBConnectionError(f"Cannot connect to {self.host}: {exc}") from exc
 
+    def _ensure_connected(self) -> None:
+        if self._smbclient is None:
+            self.connect()
+
     def _smb_path(self, remote_path: str) -> str:
+        self._validate_config()
         path = remote_path.lstrip("/")
         normalized = path.replace("/", "\\")
-        return f"\\\\{self.host}\\{self.share}\\{normalized}"
+        base = f"\\\\{self.host}\\{self.share}"
+        return f"{base}\\{normalized}" if normalized else base
 
     def list_directory(self, remote_path: str) -> list[dict]:
+        self._ensure_connected()
         import smbclient
 
         entries = []
@@ -59,6 +75,7 @@ class SMBClient:
         return entries
 
     def download_file(self, remote_path: str, local_path: str) -> None:
+        self._ensure_connected()
         import smbclient
 
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
@@ -68,6 +85,7 @@ class SMBClient:
                     dst.write(chunk)
 
     def upload_file(self, local_path: str, remote_path: str) -> None:
+        self._ensure_connected()
         import smbclient
 
         with open(local_path, "rb") as src:
@@ -76,6 +94,7 @@ class SMBClient:
                     dst.write(chunk)
 
     def file_exists(self, remote_path: str) -> bool:
+        self._ensure_connected()
         import smbclient
 
         try:
