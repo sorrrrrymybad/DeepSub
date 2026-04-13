@@ -30,18 +30,29 @@ class SMBClient:
             raise SMBConnectionError("SMB host is required")
         if not self.share.strip():
             raise SMBConnectionError("SMB share is required")
+        if not self.username.strip():
+            raise SMBConnectionError("SMB username is required")
+        if not self.password:
+            raise SMBConnectionError("SMB password is required")
+
+    def _auth_username(self) -> str:
+        if self.domain.strip():
+            return f"{self.domain}\\{self.username}"
+        return self.username
+
+    def _auth_kwargs(self) -> dict:
+        return {
+            "username": self._auth_username(),
+            "password": self.password,
+            "port": self.port,
+        }
 
     def connect(self) -> None:
         self._validate_config()
         try:
             import smbclient
 
-            smbclient.register_session(
-                self.host,
-                username=self.username,
-                password=self.password,
-                port=self.port,
-            )
+            smbclient.register_session(self.host, **self._auth_kwargs())
             self._smbclient = smbclient
         except SMBConnectionError:
             raise
@@ -64,7 +75,7 @@ class SMBClient:
         import smbclient
 
         entries = []
-        for entry in smbclient.scandir(self._smb_path(remote_path)):
+        for entry in smbclient.scandir(self._smb_path(remote_path), **self._auth_kwargs()):
             entries.append(
                 {
                     "name": entry.name,
@@ -79,7 +90,7 @@ class SMBClient:
         import smbclient
 
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
-        with smbclient.open_file(self._smb_path(remote_path), mode="rb") as src:
+        with smbclient.open_file(self._smb_path(remote_path), mode="rb", **self._auth_kwargs()) as src:
             with open(local_path, "wb") as dst:
                 while chunk := src.read(1024 * 1024):
                     dst.write(chunk)
@@ -89,7 +100,7 @@ class SMBClient:
         import smbclient
 
         with open(local_path, "rb") as src:
-            with smbclient.open_file(self._smb_path(remote_path), mode="wb") as dst:
+            with smbclient.open_file(self._smb_path(remote_path), mode="wb", **self._auth_kwargs()) as dst:
                 while chunk := src.read(1024 * 1024):
                     dst.write(chunk)
 
@@ -98,7 +109,7 @@ class SMBClient:
         import smbclient
 
         try:
-            smbclient.stat(self._smb_path(remote_path))
+            smbclient.stat(self._smb_path(remote_path), **self._auth_kwargs())
             return True
         except Exception:
             return False

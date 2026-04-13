@@ -9,3 +9,5 @@ dist/
 .venv/
 dump.rdb
 CLAUDE.md
+.superpowers
+.claude
