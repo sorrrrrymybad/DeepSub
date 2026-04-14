@@ -11,3 +11,6 @@ dump.rdb
 CLAUDE.md
 .superpowers
 .claude
+test/
+*.test.*
+*.pxd

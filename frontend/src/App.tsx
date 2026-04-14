@@ -4,7 +4,6 @@ import Layout from './components/Layout'
 import TasksPage from './pages/TasksPage'
 import NewTaskPage from './pages/NewTaskPage'
 import SettingsPage from './pages/SettingsPage'
-import HistoryPage from './pages/HistoryPage'
 import { WebSocketProvider } from './context/WebSocketContext'
 
 const queryClient = new QueryClient()
@@ -20,7 +19,6 @@ export default function App() {
               <Route path="tasks" element={<TasksPage />} />
               <Route path="tasks/new" element={<NewTaskPage />} />
               <Route path="settings" element={<SettingsPage />} />
-              <Route path="history" element={<HistoryPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

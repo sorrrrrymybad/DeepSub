@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from api.deps import get_db
 from models.task import Task
-from schemas.task import TaskCreate, TaskListResponse, TaskResponse
+from schemas.task import TaskCreate, TaskListResponse, TaskResponse, TaskSummary
 from worker.subtitle_task import process_subtitle_task
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -53,6 +53,22 @@ def list_tasks(
         .all()
     )
     return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/summary", response_model=TaskSummary)
+def get_task_summary(db: Session = Depends(get_db)):
+    from sqlalchemy import func
+
+    rows = db.query(Task.status, func.count(Task.id)).group_by(Task.status).all()
+    counts = {status: count for status, count in rows}
+    return TaskSummary(
+        total=sum(counts.values()),
+        pending=counts.get("pending", 0),
+        running=counts.get("running", 0),
+        done=counts.get("done", 0),
+        failed=counts.get("failed", 0),
+        cancelled=counts.get("cancelled", 0),
+    )
 
 
 @router.get("/{task_id}", response_model=TaskResponse)

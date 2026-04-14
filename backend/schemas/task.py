@@ -40,3 +40,12 @@ class TaskListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class TaskSummary(BaseModel):
+    total: int
+    pending: int
+    running: int
+    done: int
+    failed: int
+    cancelled: int

@@ -8,8 +8,7 @@ const resources = {
       nav: {
         Tasks: "Tasks",
         NewTask: "New Task",
-        Settings: "Settings",
-        History: "History"
+        Settings: "Settings"
       },
       common: {
         cancel: "Cancel",
@@ -109,17 +108,6 @@ const resources = {
           claudeBase: "Claude Base URL (Optional)"
         }
       },
-      history: {
-        title: "History Log",
-        heroDesc: "Review completed subtitle jobs without mixing them into the live operations queue.",
-        overviewTitle: "Archive Overview",
-        overviewDesc: "A lightweight archive view for completed subtitle runs and their delivery traces.",
-        archivedTotal: "Archived Jobs",
-        currentPage: "Current Page",
-        visibleItems: "Visible Items",
-        loading: "Loading history records...",
-        noData: "No history found"
-      },
       drawer: {
         title: "Task Logs #{{id}}",
         noLogs: "No logs available.",
@@ -158,8 +146,7 @@ const resources = {
       nav: {
         Tasks: "任务中心",
         NewTask: "新建任务",
-        Settings: "系统设置",
-        History: "历史记录"
+        Settings: "系统设置"
       },
       common: {
         cancel: "取消",
@@ -186,7 +173,7 @@ const resources = {
       },
       tasks: {
         title: "任务中心",
-        cancelAll: "取消所有运行中",
+        cancelAll: "中断所有任务",
         loading: "加载矩阵中...",
         noData: "暂无数据"
       },
@@ -258,17 +245,6 @@ const resources = {
           claudeModel: "Claude 模型",
           claudeBase: "Claude Base URL (可选)"
         }
-      },
-      history: {
-        title: "历史记录",
-        heroDesc: "查看已完成的字幕任务归档，不与实时队列混杂。",
-        overviewTitle: "已完成任务归档",
-        overviewDesc: "轻量展示已完成字幕流程及其交付轨迹。",
-        archivedTotal: "归档任务数",
-        currentPage: "当前页码",
-        visibleItems: "当前页项目",
-        loading: "加载历史记录中...",
-        noData: "暂无历史记录"
       },
       drawer: {
         title: "任务日志 #{{id}}",
