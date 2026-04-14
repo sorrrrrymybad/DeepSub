@@ -105,6 +105,9 @@ def cancel_task(task_id: int, db: Session = Depends(get_db)):
 
 @router.delete("/{task_id}/remove", status_code=204)
 def remove_task(task_id: int, db: Session = Depends(get_db)):
+    import os
+    from core.config import settings as app_settings
+
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -118,6 +121,12 @@ def remove_task(task_id: int, db: Session = Depends(get_db)):
             pass
     db.delete(task)
     db.commit()
+
+    log_path = app_settings.log_dir / f"{task_id}.log"
+    try:
+        log_path.unlink(missing_ok=True)
+    except Exception:
+        pass
 
 
 @router.post("/{task_id}/retry", response_model=TaskResponse)

@@ -392,7 +392,7 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-6">
                 {(() => {
                   const mergedValues = { ...(translateData ?? {}), ...translateForm } as Record<string, string>
-                  if (!mergedValues['batch_size']) mergedValues['batch_size'] = '1'
+                  if (mergedValues['batch_size'] === undefined) mergedValues['batch_size'] = '1'
                   return translateGroups.map((group) => (
                     <div key={group.label}>
                       <p className="mb-3 text-[0.9rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant underline">
