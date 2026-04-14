@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import PageHero from '../components/page/PageHero'
 import SectionCard from '../components/page/SectionCard'
 import SettingsDirectory from '../components/SettingsDirectory'
+import { useToast } from '../context/ToastContext'
 
 type SettingsSectionId = 'smb' | 'stt' | 'translate'
 
@@ -79,6 +80,7 @@ function ConfigFieldsSection({
 
 export default function SettingsPage() {
   const { t } = useTranslation()
+  const { show } = useToast()
   const qc = useQueryClient()
   const { data: servers } = useQuery({ queryKey: ['smb-servers'], queryFn: smbApi.list })
   const { data: sttData } = useQuery({ queryKey: ['settings-stt'], queryFn: settingsApi.getSTT })
@@ -94,7 +96,6 @@ export default function SettingsPage() {
   })
   const [testing, setTesting] = useState<number | null>(null)
   const [testResult, setTestResult] = useState<Record<number, { ok: boolean; error?: string }>>({})
-  const [errorModal, setErrorModal] = useState<string | null>(null)
   const [sttForm, setSttForm] = useState<Record<string, string>>({})
   const [translateForm, setTranslateForm] = useState<Record<string, string>>({})
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('smb')
@@ -154,9 +155,13 @@ export default function SettingsPage() {
     try {
       const result = await smbApi.test(id)
       setTestResult((current) => ({ ...current, [id]: { ok: result.ok, error: result.error } }))
+      if (!result.ok && result.error) {
+        show(result.error, 'error')
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : t('common.error')
       setTestResult((current) => ({ ...current, [id]: { ok: false, error: msg } }))
+      show(msg, 'error')
     }
 
     setTesting(null)
@@ -253,13 +258,7 @@ export default function SettingsPage() {
                         <div className="flex shrink-0 gap-2">
                           <button
                             type="button"
-                            onClick={() => {
-                              if (result && !result.ok && result.error) {
-                                setErrorModal(result.error)
-                              } else {
-                                void handleTest(server.id)
-                              }
-                            }}
+                            onClick={() => void handleTest(server.id)}
                             disabled={isTesting}
                             className={[
                               'inline-flex items-center justify-center rounded-xl border px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50',
@@ -350,26 +349,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* 错误详情弹窗 */}
-      {errorModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setErrorModal(null)}
-          />
-          <div className="relative w-full max-w-md rounded-[24px] border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
-            <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-error">
-              {t('common.error')}
-            </p>
-            <p className="text-sm leading-relaxed text-on-surface">{errorModal}</p>
-            <div className="mt-5 flex justify-end">
-              <Button variant="secondary" onClick={() => setErrorModal(null)}>
-                {t('common.close')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

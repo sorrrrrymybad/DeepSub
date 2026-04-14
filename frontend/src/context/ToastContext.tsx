@@ -21,31 +21,46 @@ const TYPE_STYLES: Record<ToastType, string> = {
   warning: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
 }
 
-const TYPE_ICONS: Record<ToastType, string> = {
-  info: 'ℹ',
-  success: '✓',
-  error: '✕',
-  warning: '⚠',
-}
-
 let nextId = 0
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
-  const timers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
+  const [entering, setEntering] = useState<Set<number>>(new Set())
+  const [leaving, setLeaving] = useState<Set<number>>(new Set())
+  const autoTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
+  const leaveTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
 
-  const dismiss = useCallback((id: number) => {
-    clearTimeout(timers.current.get(id))
-    timers.current.delete(id)
+  const remove = useCallback((id: number) => {
+    clearTimeout(autoTimers.current.get(id))
+    clearTimeout(leaveTimers.current.get(id))
+    autoTimers.current.delete(id)
+    leaveTimers.current.delete(id)
+    setLeaving((prev) => { const next = new Set(prev); next.delete(id); return next })
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
+
+  const dismiss = useCallback((id: number) => {
+    // 先触发飞出动画，300ms 后再从列表移除
+    clearTimeout(autoTimers.current.get(id))
+    autoTimers.current.delete(id)
+    setLeaving((prev) => new Set(prev).add(id))
+    const t = setTimeout(() => remove(id), 300)
+    leaveTimers.current.set(id, t)
+  }, [remove])
 
   const show = useCallback(
     (message: string, type: ToastType = 'info') => {
       const id = nextId++
+      // 先标记为 entering（右侧偏移），下一帧移除标记触发飞入动画
+      setEntering((prev) => new Set(prev).add(id))
       setToasts((prev) => [{ id, message, type }, ...prev])
-      const timer = setTimeout(() => dismiss(id), 3000)
-      timers.current.set(id, timer)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setEntering((prev) => { const next = new Set(prev); next.delete(id); return next })
+        })
+      })
+      const timer = setTimeout(() => dismiss(id), 5000)
+      autoTimers.current.set(id, timer)
     },
     [dismiss],
   )
@@ -53,26 +68,24 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ show }}>
       {children}
-      {/* fixed 定位：header 高度约 98px，右上角偏下 */}
-      <div className="fixed right-4 top-[106px] z-40 flex flex-col gap-2" aria-live="polite">
+      <div className="fixed right-4 top-[106px] z-40 flex flex-col gap-2 overflow-hidden" aria-live="polite">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             role="status"
+            style={{ transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.28s' }}
             className={[
-              'flex min-w-[260px] max-w-sm items-start gap-3 rounded-2xl border px-4 py-3 shadow-[var(--shadow-card)]',
+              'flex min-w-[260px] max-w-sm items-center gap-3 rounded-2xl border px-4 py-3 shadow-[var(--shadow-card)]',
               TYPE_STYLES[toast.type],
+              entering.has(toast.id) || leaving.has(toast.id) ? 'translate-x-[120%] opacity-0' : 'translate-x-0 opacity-100',
             ].join(' ')}
           >
-            <span className="mt-0.5 shrink-0 text-sm font-bold" aria-hidden>
-              {TYPE_ICONS[toast.type]}
-            </span>
             <p className="flex-1 text-sm font-semibold leading-snug">{toast.message}</p>
             <button
               type="button"
               aria-label="关闭"
               onClick={() => dismiss(toast.id)}
-              className="mt-0.5 shrink-0 opacity-60 transition-opacity hover:opacity-100"
+              className="shrink-0 opacity-60 transition-opacity hover:opacity-100"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
