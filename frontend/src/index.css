@@ -5,25 +5,266 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-background: #faf7f1;
+    --color-on-background: #2f2923;
+    --color-surface: #fffaf3;
+    --color-surface-soft: #f4ede3;
+    --color-surface-variant: #ebe2d5;
+    --color-on-surface: #302a25;
+    --color-on-surface-variant: #6d645b;
+    --color-inverse-surface: #1f1b18;
+    --color-inverse-on-surface: #f4eee7;
+    --color-surface-container-lowest: rgba(255, 250, 243, 0.92);
+    --color-surface-container-low: rgba(255, 250, 243, 0.84);
+    --color-surface-container: rgba(244, 237, 227, 0.82);
+    --color-surface-container-high: rgba(238, 229, 217, 0.92);
+    --color-surface-container-highest: rgba(232, 221, 207, 0.96);
+    --color-primary: #8f8478;
+    --color-on-primary: #fffdf8;
+    --color-primary-container: #e8dfd2;
+    --color-on-primary-container: #3c352f;
+    --color-primary-dim: #786e64;
+    --color-secondary: #4c443d;
+    --color-on-secondary: #fffbf6;
+    --color-secondary-container: #e8dfd4;
+    --color-on-secondary-container: #4c443d;
+    --color-secondary-dim: #635950;
+    --color-tertiary: #ded7ce;
+    --color-on-tertiary: #352f2a;
+    --color-tertiary-container: #f2ece3;
+    --color-on-tertiary-container: #595047;
+    --color-tertiary-dim: #7a7066;
+    --color-error: #b05f54;
+    --color-on-error: #fff8f6;
+    --color-error-container: rgba(191, 101, 86, 0.16);
+    --color-on-error-container: #8c3c31;
+    --color-error-dim: #8f4b40;
+    --color-outline: rgba(120, 107, 93, 0.5);
+    --color-outline-variant: rgba(155, 142, 129, 0.34);
+    --shadow-soft: 0 18px 40px rgba(93, 74, 51, 0.08);
+    --shadow-card: 0 16px 36px rgba(66, 52, 35, 0.1);
+    --hero-glow: radial-gradient(circle at top right, rgba(150, 136, 120, 0.22), transparent 34%);
+    --page-glow: radial-gradient(circle at top right, rgba(155, 140, 124, 0.14), transparent 30%),
+      radial-gradient(circle at bottom left, rgba(220, 207, 193, 0.38), transparent 28%);
+  }
+
+  :root[data-theme='a'] {
+    --color-background: #faf7f1;
+    --color-on-background: #2f2923;
+    --color-surface: #fffaf3;
+    --color-surface-soft: #f4ede3;
+    --color-surface-variant: #ebe2d5;
+    --color-on-surface: #302a25;
+    --color-on-surface-variant: #6d645b;
+    --color-inverse-surface: #1f1b18;
+    --color-inverse-on-surface: #f4eee7;
+    --color-surface-container-lowest: rgba(255, 250, 243, 0.92);
+    --color-surface-container-low: rgba(255, 250, 243, 0.84);
+    --color-surface-container: rgba(244, 237, 227, 0.82);
+    --color-surface-container-high: rgba(238, 229, 217, 0.92);
+    --color-surface-container-highest: rgba(232, 221, 207, 0.96);
+    --color-primary: #8f8478;
+    --color-on-primary: #fffdf8;
+    --color-primary-container: #e8dfd2;
+    --color-on-primary-container: #3c352f;
+    --color-primary-dim: #786e64;
+    --color-secondary: #4c443d;
+    --color-on-secondary: #fffbf6;
+    --color-secondary-container: #e8dfd4;
+    --color-on-secondary-container: #4c443d;
+    --color-secondary-dim: #635950;
+    --color-tertiary: #ded7ce;
+    --color-on-tertiary: #352f2a;
+    --color-tertiary-container: #f2ece3;
+    --color-on-tertiary-container: #595047;
+    --color-tertiary-dim: #7a7066;
+    --color-error: #b05f54;
+    --color-on-error: #fff8f6;
+    --color-error-container: rgba(191, 101, 86, 0.16);
+    --color-on-error-container: #8c3c31;
+    --color-error-dim: #8f4b40;
+    --color-outline: rgba(120, 107, 93, 0.5);
+    --color-outline-variant: rgba(155, 142, 129, 0.34);
+    --shadow-soft: 0 18px 40px rgba(93, 74, 51, 0.08);
+    --shadow-card: 0 16px 36px rgba(66, 52, 35, 0.1);
+    --hero-glow: radial-gradient(circle at top right, rgba(150, 136, 120, 0.22), transparent 34%);
+    --page-glow: radial-gradient(circle at top right, rgba(155, 140, 124, 0.14), transparent 30%),
+      radial-gradient(circle at bottom left, rgba(220, 207, 193, 0.38), transparent 28%);
+  }
+
+  :root[data-theme='b'] {
+    --color-background: #161412;
+    --color-on-background: #f2ece6;
+    --color-surface: #201d1a;
+    --color-surface-soft: #27231f;
+    --color-surface-variant: #2f2a25;
+    --color-on-surface: #f2ece6;
+    --color-on-surface-variant: #b6aba1;
+    --color-inverse-surface: #f6f2ed;
+    --color-inverse-on-surface: #1a1714;
+    --color-surface-container-lowest: rgba(27, 24, 21, 0.96);
+    --color-surface-container-low: rgba(33, 29, 25, 0.94);
+    --color-surface-container: rgba(39, 34, 30, 0.94);
+    --color-surface-container-high: rgba(48, 42, 37, 0.96);
+    --color-surface-container-highest: rgba(57, 50, 44, 1);
+    --color-primary: #d3c4b5;
+    --color-on-primary: #1e1a17;
+    --color-primary-container: rgba(211, 196, 181, 0.16);
+    --color-on-primary-container: #f1e6da;
+    --color-primary-dim: #b3a596;
+    --color-secondary: #a79c90;
+    --color-on-secondary: #181512;
+    --color-secondary-container: rgba(167, 156, 144, 0.16);
+    --color-on-secondary-container: #f0e7dd;
+    --color-secondary-dim: #c2b7ab;
+    --color-tertiary: #3b342e;
+    --color-on-tertiary: #f6efe8;
+    --color-tertiary-container: rgba(59, 52, 46, 0.68);
+    --color-on-tertiary-container: #d5cabd;
+    --color-tertiary-dim: #8d8175;
+    --color-error: #efaa9d;
+    --color-on-error: #321714;
+    --color-error-container: rgba(198, 87, 70, 0.22);
+    --color-on-error-container: #f6c9c2;
+    --color-error-dim: #cc7a6d;
+    --color-outline: rgba(138, 126, 115, 0.68);
+    --color-outline-variant: rgba(101, 92, 83, 0.66);
+    --shadow-soft: 0 22px 42px rgba(0, 0, 0, 0.34);
+    --shadow-card: 0 18px 36px rgba(0, 0, 0, 0.36);
+    --hero-glow: radial-gradient(circle at top right, rgba(120, 108, 94, 0.22), transparent 34%);
+    --page-glow: radial-gradient(circle at top right, rgba(120, 108, 94, 0.16), transparent 28%);
+  }
+
+  :root[data-theme='c'] {
+    --color-background: #f5f5f4;
+    --color-on-background: #232220;
+    --color-surface: #ffffff;
+    --color-surface-soft: #f3f3f2;
+    --color-surface-variant: #e8e8e6;
+    --color-on-surface: #232220;
+    --color-on-surface-variant: #696661;
+    --color-inverse-surface: #1d1c1a;
+    --color-inverse-on-surface: #f6f5f2;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-container-low: #fbfbfa;
+    --color-surface-container: #f4f4f2;
+    --color-surface-container-high: #ecece9;
+    --color-surface-container-highest: #e4e4e0;
+    --color-primary: #6f6a63;
+    --color-on-primary: #ffffff;
+    --color-primary-container: #ece9e2;
+    --color-on-primary-container: #3e3a35;
+    --color-primary-dim: #56524c;
+    --color-secondary: #303030;
+    --color-on-secondary: #ffffff;
+    --color-secondary-container: #ececea;
+    --color-on-secondary-container: #3e3d3a;
+    --color-secondary-dim: #5a5956;
+    --color-tertiary: #dfdfdc;
+    --color-on-tertiary: #2a2825;
+    --color-tertiary-container: #f4f4f1;
+    --color-on-tertiary-container: #5f5b56;
+    --color-tertiary-dim: #7c7771;
+    --color-error: #a45749;
+    --color-on-error: #fff8f7;
+    --color-error-container: rgba(164, 87, 73, 0.14);
+    --color-on-error-container: #86392d;
+    --color-error-dim: #8c4337;
+    --color-outline: rgba(122, 120, 115, 0.48);
+    --color-outline-variant: rgba(181, 180, 175, 0.58);
+    --shadow-soft: 0 16px 30px rgba(43, 41, 36, 0.06);
+    --shadow-card: 0 12px 26px rgba(40, 38, 35, 0.08);
+    --hero-glow: radial-gradient(circle at top right, rgba(181, 176, 169, 0.2), transparent 32%);
+    --page-glow: radial-gradient(circle at top right, rgba(181, 176, 169, 0.16), transparent 28%);
+  }
+
+  html {
+    background: var(--color-background);
+  }
+
   body {
     @apply bg-background text-on-background font-sans antialiased;
+    background-image: var(--page-glow);
+    background-attachment: fixed;
   }
 }
 
 @layer components {
-  /* Override default focus rings for more technical look */
   *:focus-visible {
     @apply outline-none ring-1 ring-primary;
   }
-  
-  /* Inputs */
+
   input, select, textarea {
-    @apply bg-surface-container-lowest border-outline-variant text-on-surface focus:ring-1 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
-    border-radius: 0;
+    @apply bg-surface-container-lowest border border-outline-variant text-on-surface focus:ring-1 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
+    border-radius: 14px;
   }
 
-  /* Remove default buttons rounded corners globally since design requires 0px */
   button {
-    border-radius: 0;
+    border-radius: 14px;
+  }
+
+  .ui-panel {
+    @apply border border-outline-variant bg-surface-container-lowest;
+    box-shadow: var(--shadow-card);
+  }
+
+  .page-hero {
+    @apply relative overflow-hidden rounded-[28px] border border-outline-variant bg-surface-container-lowest p-6 md:p-8;
+    background-image: var(--hero-glow), linear-gradient(135deg, var(--color-surface-container-lowest), var(--color-surface-container-low));
+    box-shadow: var(--shadow-card);
+  }
+
+  .page-hero::after {
+    content: '';
+    position: absolute;
+    inset: auto -40px -50px auto;
+    width: 200px;
+    height: 200px;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 68%);
+    pointer-events: none;
+  }
+
+  .section-card {
+    @apply rounded-[24px] border border-outline-variant bg-surface-container-lowest p-5 md:p-6;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .stat-card {
+    @apply rounded-[22px] border border-outline-variant bg-surface-container-lowest p-5;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .stat-card--accent {
+    @apply bg-primary-container text-on-primary-container;
+    border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+
+  .stat-card--success {
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-container-lowest));
+  }
+
+  .stat-card--danger {
+    @apply bg-error-container text-on-error-container;
+    border-color: color-mix(in srgb, var(--color-error) 30%, transparent);
+  }
+
+  .filter-tab {
+    @apply rounded-full border border-transparent px-3 py-2 text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant transition-colors;
+  }
+
+  .filter-tab:hover {
+    @apply border-outline-variant bg-surface-container-low text-on-surface;
+  }
+
+  .filter-tab[data-active='true'] {
+    @apply bg-surface text-primary;
+    border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .empty-state {
+    @apply rounded-[24px] border border-dashed border-outline-variant bg-surface-container-low p-8 text-center;
   }
 }

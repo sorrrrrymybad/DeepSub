@@ -7,16 +7,18 @@ interface BadgeProps {
 
 export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default' }) => {
   const variants: Record<string, string> = {
-    pending: 'bg-surface-container-high text-on-surface-variant',
-    running: 'bg-primary-container text-on-primary-container',
-    done: 'bg-surface-variant text-on-surface',
-    failed: 'bg-error-container text-on-error-container',
-    cancelled: 'bg-surface-container text-on-surface-variant',
-    default: 'bg-surface-container text-on-surface',
+    pending: 'bg-surface-container-high text-on-surface-variant border border-outline-variant',
+    running: 'bg-primary-container text-on-primary-container border border-primary/20',
+    done: 'bg-surface-variant text-on-surface border border-outline-variant',
+    failed: 'bg-error-container text-on-error-container border border-error/20',
+    cancelled: 'bg-surface-container text-on-surface-variant border border-outline-variant',
+    default: 'bg-surface-container text-on-surface border border-outline-variant',
   }
 
   return (
-    <span className={`px-2 py-0.5 text-[0.6875rem] uppercase tracking-[0.05em] font-medium ${variants[variant]}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] ${variants[variant]}`}
+    >
       {children}
     </span>
   )

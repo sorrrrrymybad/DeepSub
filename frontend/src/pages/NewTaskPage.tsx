@@ -7,6 +7,9 @@ import SMBFileBrowser from '../components/SMBFileBrowser'
 import EngineSelector from '../components/EngineSelector'
 import { Button } from '../components/atoms/Button'
 import { useTranslation } from 'react-i18next'
+import PageHero from '../components/page/PageHero'
+import SectionCard from '../components/page/SectionCard'
+import StatCard from '../components/page/StatCard'
 
 export default function NewTaskPage() {
   const { t } = useTranslation()
@@ -54,8 +57,10 @@ export default function NewTaskPage() {
       setError(t('newTask.errNoFiles'))
       return
     }
+
     setSubmitting(true)
     setError('')
+
     try {
       await tasksApi.create({
         smb_server_id: serverId,
@@ -75,61 +80,190 @@ export default function NewTaskPage() {
   }
 
   return (
-    <div className="flex flex-col gap-10">
-      <h1 className="text-[1.5rem] font-bold tracking-[-0.02em] text-on-surface">{t('newTask.title')}</h1>
+    <div className="flex flex-col gap-6">
+      <PageHero
+        eyebrow="Task Intake"
+        title={t('newTask.title')}
+        description={t('newTask.heroDesc')}
+        aside={
+          <div className="space-y-3 rounded-[22px] border border-outline-variant bg-surface-container-low px-4 py-4 shadow-[var(--shadow-soft)]">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
+              Dispatch Readiness
+            </p>
+            <p className="text-3xl font-black tracking-[-0.05em] text-on-surface">{selectedFiles.length}</p>
+            <p className="text-sm text-on-surface-variant">
+              {t('newTask.selectedArgs', { count: selectedFiles.length })}
+            </p>
+          </div>
+        }
+      />
 
-      <div className="flex flex-col gap-8 bg-surface-container-lowest p-8 border border-outline-variant shadow-sm">
-        <div>
-          <label className="block text-[0.6875rem] font-medium text-on-surface-variant uppercase tracking-[0.05em] mb-2">{t('newTask.smbServer')}</label>
-          <select value={serverId ?? ''} onChange={e => { setServerId(Number(e.target.value)); setSelectedFiles([]) }}
-                  className="w-full bg-background border border-outline-variant rounded-none px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary appearance-none">
-            <option value="">{t('newTask.selectServer')}</option>
-            {servers?.map(s => <option key={s.id} value={s.id}>{s.name} ({s.host})</option>)}
-          </select>
-        </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard
+          title={t('newTask.smbServer')}
+          value={serverId ? 1 : 0}
+          hint={serverId ? servers?.find((server) => server.id === serverId)?.name : t('newTask.selectServer')}
+        />
+        <StatCard
+          title={t('newTask.selectionTitle')}
+          value={selectedFiles.length}
+          hint={t('newTask.selectionDesc')}
+          tone="accent"
+        />
+        <StatCard
+          title={t('newTask.transEngine')}
+          value={translateEngine}
+          hint={t('newTask.submitHint')}
+        />
+      </div>
 
-        {serverId && (
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-end">
-              <label className="block text-[0.6875rem] font-medium text-on-surface-variant uppercase tracking-[0.05em]">{t('newTask.targetFiles')}</label>
-              {selectedFiles.length > 0 && <span className="text-[0.6875rem] text-primary uppercase font-bold">{t('newTask.selectedArgs', { count: selectedFiles.length })}</span>}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <SectionCard
+          eyebrow="Workflow"
+          title={t('newTask.pipelineTitle')}
+          description={t('newTask.pipelineDesc')}
+        >
+          <div className="flex flex-col gap-5">
+            <div className="rounded-[20px] border border-outline-variant bg-surface-container-low p-4">
+              <label
+                htmlFor="new-task-server"
+                className="mb-3 block text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant"
+              >
+                {t('newTask.smbServer')}
+              </label>
+              <select
+                id="new-task-server"
+                aria-label={t('newTask.smbServer')}
+                value={serverId ?? ''}
+                onChange={e => {
+                  const nextValue = e.target.value
+                  setServerId(nextValue ? Number(nextValue) : null)
+                  setSelectedFiles([])
+                }}
+                className="w-full rounded-2xl px-4 py-3 text-sm"
+              >
+                <option value="">{t('newTask.selectServer')}</option>
+                {servers?.map(s => <option key={s.id} value={s.id}>{s.name} ({s.host})</option>)}
+              </select>
             </div>
-            <SMBFileBrowser serverId={serverId} selected={selectedFiles} onToggle={toggleFile} />
-          </div>
-        )}
 
-        <div className="grid grid-cols-2 gap-8">
-          <EngineSelector label={t('newTask.sourceLang')} value={sourceLang} onChange={setSourceLang} options={LANGUAGES} />
-          <EngineSelector label={t('newTask.targetLang')} value={targetLang} onChange={setTargetLang} options={LANGUAGES.filter(l => l.value !== 'auto')} />
-          <EngineSelector label={t('newTask.sttEngine')} value={sttEngine} onChange={setSttEngine} options={STT_ENGINES} />
-          <EngineSelector label={t('newTask.transEngine')} value={translateEngine} onChange={setTranslateEngine} options={TRANSLATE_ENGINES} />
+            {serverId ? (
+              <SMBFileBrowser serverId={serverId} selected={selectedFiles} onToggle={toggleFile} />
+            ) : (
+              <div className="empty-state">
+                <div className="mx-auto max-w-md space-y-3">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
+                    SMB
+                  </p>
+                  <h3 className="text-xl font-bold tracking-[-0.03em] text-on-surface">
+                    {t('newTask.selectServer')}
+                  </h3>
+                  <p className="text-sm leading-6 text-on-surface-variant">
+                    {t('newTask.pipelineDesc')}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </SectionCard>
+
+        <div className="flex flex-col gap-6">
+          <SectionCard
+            eyebrow="Profile"
+            title={t('newTask.profileTitle')}
+            description={t('newTask.profileDesc')}
+          >
+            <div className="grid gap-4">
+              <EngineSelector
+                id="new-task-source-lang"
+                label={t('newTask.sourceLang')}
+                value={sourceLang}
+                onChange={setSourceLang}
+                options={LANGUAGES}
+              />
+              <EngineSelector
+                id="new-task-target-lang"
+                label={t('newTask.targetLang')}
+                value={targetLang}
+                onChange={setTargetLang}
+                options={LANGUAGES.filter(l => l.value !== 'auto')}
+              />
+              <EngineSelector
+                id="new-task-stt-engine"
+                label={t('newTask.sttEngine')}
+                value={sttEngine}
+                onChange={setSttEngine}
+                options={STT_ENGINES}
+              />
+              <EngineSelector
+                id="new-task-translate-engine"
+                label={t('newTask.transEngine')}
+                value={translateEngine}
+                onChange={setTranslateEngine}
+                options={TRANSLATE_ENGINES}
+              />
+
+              <label className="flex items-center gap-3 rounded-[20px] border border-outline-variant bg-surface-container-low p-4 text-sm text-on-surface">
+                <input
+                  type="checkbox"
+                  checked={overwrite}
+                  onChange={e => setOverwrite(e.target.checked)}
+                  className="h-4 w-4 rounded border-outline-variant bg-surface custom-checkbox"
+                />
+                <span className="font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+                  {t('newTask.overwrite')}
+                </span>
+              </label>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            eyebrow="Review"
+            title={t('newTask.selectionTitle')}
+            description={t('newTask.selectionDesc')}
+          >
+            <div className="space-y-4">
+              {selectedFiles.length > 0 ? (
+                <ul className="space-y-3">
+                  {selectedFiles.map((filePath) => (
+                    <li
+                      key={filePath}
+                      className="flex items-center justify-between gap-3 rounded-[18px] border border-outline-variant bg-surface-container-low p-3"
+                    >
+                      <span className="truncate text-sm font-medium text-on-surface">
+                        {filePath.split('/').pop()}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleFile(filePath)}
+                        className="rounded-full border border-outline-variant px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-error transition-colors hover:border-error"
+                      >
+                        {t('common.remove')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="rounded-[18px] border border-dashed border-outline-variant bg-surface-container-low p-5 text-sm text-on-surface-variant">
+                  {t('newTask.selectionDesc')}
+                </div>
+              )}
+
+              {error ? (
+                <p className="rounded-[18px] border border-error/30 bg-error-container px-4 py-3 text-sm text-on-error-container">
+                  {error}
+                </p>
+              ) : null}
+
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-on-surface-variant">{t('newTask.submitHint')}</p>
+                <Button variant="primary" onClick={handleSubmit} disabled={submitting}>
+                  {submitting ? t('newTask.executing') : t('newTask.commitOps', { count: selectedFiles.length })}
+                </Button>
+              </div>
+            </div>
+          </SectionCard>
         </div>
-
-        <label className="flex items-center gap-3 text-sm text-on-surface cursor-pointer group w-fit">
-          <input type="checkbox" checked={overwrite} onChange={e => setOverwrite(e.target.checked)} 
-                 className="w-4 h-4 text-primary bg-background border-outline-variant focus:ring-primary focus:ring-1 rounded-none appearance-none checked:bg-primary custom-checkbox cursor-pointer" />
-          <span className="uppercase tracking-[0.05em] text-[0.6875rem] font-medium group-hover:text-primary transition-colors">{t('newTask.overwrite')}</span>
-        </label>
-
-        {selectedFiles.length > 0 && (
-          <div className="bg-surface p-4 text-sm mt-4 border border-outline-variant border-opacity-20 text-on-surface">
-            <p className="text-[0.6875rem] tracking-[0.05em] text-on-surface-variant mb-4 uppercase">{t('newTask.selectedIndex')}</p>
-            <ul className="flex flex-col gap-2">
-              {selectedFiles.map(f => (
-                <li key={f} className="flex items-center justify-between group">
-                  <span className="truncate">{f.split('/').pop()}</span>
-                  <button onClick={() => toggleFile(f)} className="text-error uppercase text-[0.6875rem] font-medium opacity-0 group-hover:opacity-100 tracking-[0.05em] transition-opacity">{t('common.remove')}</button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {error && <p className="text-[0.6875rem] font-medium tracking-[0.05em] text-error bg-error-container p-3 uppercase">{error}</p>}
-
-        <Button variant="primary" onClick={handleSubmit} disabled={submitting} className="mt-4 py-3">
-          {submitting ? t('newTask.executing') : t('newTask.commitOps', { count: selectedFiles.length })}
-        </Button>
       </div>
     </div>
   )

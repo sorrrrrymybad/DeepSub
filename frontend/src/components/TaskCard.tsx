@@ -30,44 +30,72 @@ export default function TaskCard({ task }: { task: Task }) {
 
   return (
     <>
-      <div className="group bg-surface-container-lowest hover:bg-surface-container-high p-4 flex flex-col gap-2 transition-colors duration-150 ease-linear">
+      <article className="section-card group p-5 transition-colors duration-150 ease-linear hover:bg-surface-container-low">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-[1.125rem] truncate leading-[1.6]" title={task.file_path}>
+            <p className="truncate text-[1.125rem] font-bold leading-[1.5] tracking-[-0.03em] text-on-surface" title={task.file_path}>
               {filename}
             </p>
-            <p className="text-xs text-on-surface-variant truncate tracking-[0.05em] uppercase">
+            <p className="truncate text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
               {task.file_path}
             </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex shrink-0 items-center gap-3">
             <Badge variant={task.status}>{t(`status.${task.status}`)}</Badge>
-            {duration && <span className="text-[0.6875rem] text-on-surface-variant uppercase tracking-[0.05em]">{duration}</span>}
+            {duration && (
+              <span className="rounded-full border border-outline-variant px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+                {duration}
+              </span>
+            )}
           </div>
         </div>
 
         {task.status === 'running' && (
-          <div className="w-full bg-surface-container h-1.5 mt-2">
-            <div className="bg-primary h-1.5 transition-all duration-300 ease-linear"
-                 style={{ width: `${task.progress}%` }} />
+          <div className="mt-4">
+            <div className="mb-2 flex items-center justify-between text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+              <span>{t('status.running')}</span>
+              <span>{task.progress}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-surface-container-high">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-300 ease-linear"
+                style={{ width: `${task.progress}%` }}
+              />
+            </div>
           </div>
         )}
 
         {task.error_message && (
-          <p className="text-xs text-error mt-2">{task.error_message}</p>
+          <p className="mt-4 rounded-2xl border border-error/20 bg-error-container px-4 py-3 text-sm text-on-error-container">
+            {task.error_message}
+          </p>
         )}
 
-        <div className="flex gap-4 mt-2 text-[0.6875rem] uppercase tracking-[0.05em] font-medium">
-          <button onClick={() => setShowLog(true)}
-                  className="text-primary hover:text-primary-dim transition-colors">{t('common.log')}</button>
+        <div className="mt-4 flex gap-3 text-[0.72rem] font-semibold uppercase tracking-[0.14em]">
+          <button
+            onClick={() => setShowLog(true)}
+            className="rounded-full border border-outline-variant px-3 py-2 text-primary transition-colors hover:border-primary hover:text-primary-dim"
+          >
+            {t('common.log')}
+          </button>
           {task.status === 'running' && (
-            <button onClick={handleCancel} className="text-on-surface-variant hover:text-on-surface transition-colors">{t('common.cancel')}</button>
+            <button
+              onClick={handleCancel}
+              className="rounded-full border border-outline-variant px-3 py-2 text-on-surface-variant transition-colors hover:border-primary hover:text-on-surface"
+            >
+              {t('common.cancel')}
+            </button>
           )}
           {task.status === 'failed' && task.retry_count < 5 && (
-            <button onClick={handleRetry} className="text-primary hover:text-primary-dim transition-colors">{t('common.retry')}</button>
+            <button
+              onClick={handleRetry}
+              className="rounded-full border border-outline-variant px-3 py-2 text-primary transition-colors hover:border-primary hover:text-primary-dim"
+            >
+              {t('common.retry')}
+            </button>
           )}
         </div>
-      </div>
+      </article>
       {showLog && <TaskLogDrawer taskId={task.id} onClose={() => setShowLog(false)} />}
     </>
   )

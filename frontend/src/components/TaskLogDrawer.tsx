@@ -21,14 +21,28 @@ export default function TaskLogDrawer({ taskId, onClose }: { taskId: number; onC
   }, [logs])
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
-      <div className="w-2/3 max-w-2xl h-full bg-surface-container-lowest flex flex-col shadow-[0_0_32px_rgba(45,52,53,0.04)]"
-           onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-6 bg-surface-container-low">
-          <h2 className="font-semibold text-[1.125rem] text-on-surface tracking-[-0.02em] uppercase">{t('drawer.title', { id: taskId })}</h2>
-          <button onClick={onClose} className="text-on-surface-variant hover:text-primary transition-colors uppercase text-[0.6875rem] tracking-[0.05em] font-medium">{t('common.close')}</button>
+    <div className="fixed inset-0 z-50 flex justify-end bg-[rgba(22,18,14,0.36)] backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="flex h-full w-full max-w-3xl flex-col border-l border-outline-variant bg-surface-container-lowest shadow-[var(--shadow-card)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-6 py-5">
+          <div>
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
+              Task Logs
+            </p>
+            <h2 className="mt-2 text-[1.125rem] font-bold tracking-[-0.03em] text-on-surface">
+              {t('drawer.title', { id: taskId })}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full border border-outline-variant px-3 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
+          >
+            {t('common.close')}
+          </button>
         </div>
-        <pre className="flex-1 overflow-auto p-6 text-sm font-mono text-on-surface bg-background">
+        <pre className="flex-1 overflow-auto bg-background p-6 text-sm leading-7 text-on-surface">
           {logs || t('drawer.noLogs')}
           <div ref={bottomRef} />
         </pre>
