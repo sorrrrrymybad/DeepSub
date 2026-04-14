@@ -93,6 +93,20 @@ def cancel_task(task_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
+@router.delete("/{task_id}/remove", status_code=204)
+def remove_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if task.celery_task_id and task.status == "running":
+        from celery.result import AsyncResult
+
+        AsyncResult(task.celery_task_id).revoke(terminate=True)
+    db.delete(task)
+    db.commit()
+
+
 @router.post("/{task_id}/retry", response_model=TaskResponse)
 def retry_task(task_id: int, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()

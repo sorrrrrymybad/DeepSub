@@ -26,12 +26,20 @@ export default function TaskCard({ task }: { task: Task }) {
     qc.invalidateQueries({ queryKey: ['tasks'] })
   }
 
+  const handleRemove = async () => {
+    await tasksApi.remove(task.id)
+    qc.invalidateQueries({ queryKey: ['tasks'] })
+  }
+
   const filename = task.file_path.split('/').pop() ?? task.file_path
 
   return (
     <>
-      <article className="section-card group p-5 transition-colors duration-150 ease-linear hover:bg-surface-container-low">
-        <div className="flex items-start justify-between gap-4">
+      <article className="section-card group relative p-5 transition-colors duration-150 ease-linear hover:bg-surface-container-low">
+        <span className="absolute left-2 top-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+          #{task.id}
+        </span>
+        <div className="flex items-start justify-between gap-4 mt-1">
           <div className="flex-1 min-w-0">
             <p className="truncate text-[1.125rem] font-bold leading-[1.5] tracking-[-0.03em] text-on-surface" title={task.file_path}>
               {filename}
@@ -94,6 +102,12 @@ export default function TaskCard({ task }: { task: Task }) {
               {t('common.retry')}
             </button>
           )}
+          <button
+            onClick={handleRemove}
+            className="ml-auto rounded-full border border-outline-variant px-3 py-2 text-on-surface-variant transition-colors hover:border-error hover:text-error"
+          >
+            {t('common.delete')}
+          </button>
         </div>
       </article>
       {showLog && <TaskLogDrawer taskId={task.id} onClose={() => setShowLog(false)} />}

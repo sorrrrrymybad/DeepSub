@@ -107,9 +107,7 @@ export default function TasksPage() {
           ) : items.length === 0 ? (
             <EmptyState
               title={t('tasks.noData')}
-              description={t('tasks.emptyDescription', {
-                defaultValue: 'Once subtitle jobs are created, they will appear here with progress and status details.',
-              })}
+              description={t('tasks.emptyDescription')}
             />
           ) : (
             <div className="flex flex-col gap-4">

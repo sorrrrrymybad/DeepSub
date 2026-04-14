@@ -20,7 +20,7 @@ export default function SettingsDirectory({
   return (
     <nav
       aria-label={title}
-      className="ui-panel sticky top-6 self-start flex flex-col gap-3 rounded-[24px] p-4 md:p-5"
+      className="ui-panel sticky top-[122px] self-start hidden flex-col gap-3 rounded-[24px] p-4 xl:flex xl:p-5"
     >
       <div className="border-b border-outline-variant pb-4">
         <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">

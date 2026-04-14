@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '../theme/ThemeProvider'
 
 type MenuType = 'language' | 'theme' | null
+
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className={iconClassName} fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+    </svg>
+  )
+}
 
 const iconClassName = 'h-[18px] w-[18px]'
 
@@ -29,7 +37,13 @@ export default function Layout() {
   const { t, i18n } = useTranslation()
   const { mode, setMode } = useTheme()
   const [openMenu, setOpenMenu] = useState<MenuType>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const location = useLocation()
+
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [location.pathname])
 
   const navItems = [
     { to: '/tasks', label: t('nav.Tasks'), end: true },
@@ -90,6 +104,17 @@ export default function Layout() {
             </p>
           </div>
         </div>
+
+        <div className="flex items-center gap-2">
+          {/* 移动端菜单按钮，仅在 lg 以下显示 */}
+          <button
+            type="button"
+            aria-label="menu"
+            onClick={() => setDrawerOpen(true)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition-colors hover:border-primary hover:text-primary lg:hidden"
+          >
+            <MenuIcon />
+          </button>
 
         <div ref={menuRef} className="relative flex items-center gap-2">
           <button
@@ -176,13 +201,71 @@ export default function Layout() {
             </div>
           )}
         </div>
+        </div>
       </header>
 
+      {/* 移动端抽屉导航（从顶部向下弹出） */}
+      <div
+        className={[
+          'fixed inset-0 z-20 lg:hidden transition-all duration-300',
+          drawerOpen ? 'pointer-events-auto' : 'pointer-events-none',
+        ].join(' ')}
+      >
+        {/* 遮罩 */}
+        <div
+          className={[
+            'absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300',
+            drawerOpen ? 'opacity-100' : 'opacity-0',
+          ].join(' ')}
+          onClick={() => setDrawerOpen(false)}
+        />
+        {/* 抽屉面板：从顶部滑下 */}
+        <div
+          className={[
+            'absolute inset-x-0 top-0 ui-panel rounded-b-[28px] p-6 shadow-xl transition-transform duration-300 ease-out',
+            drawerOpen ? 'translate-y-0' : '-translate-y-full',
+          ].join(' ')}
+        >
+          <div className="mt-[98px] mb-4 flex items-center justify-between">
+            <span className="text-sm font-semibold text-on-surface-variant">导航</span>
+            <button
+              type="button"
+              aria-label="close menu"
+              onClick={() => setDrawerOpen(false)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-on-surface-variant hover:text-on-surface"
+            >
+              <svg viewBox="0 0 24 24" className={iconClassName} fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+          <nav className="flex flex-col gap-2">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  [
+                    'rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors',
+                    isActive
+                      ? 'border-primary bg-primary-container text-on-primary-container'
+                      : 'border-transparent text-on-surface-variant hover:border-outline-variant hover:bg-surface-container-low hover:text-on-surface',
+                  ].join(' ')
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+      </div>
+
       {/* 内容区：aside + main 并排 */}
-      <div className="mx-auto flex px-4 md:px-6">
+      <div className="mx-auto flex px-4 lg:px-6">
         {/* 固定侧边栏，高度 = 视口高度 - header 高度 */}
-        <aside className="hidden md:block">
-          <div className="sticky top-[93px] flex h-[calc(100vh-93px)] w-72 shrink-0 flex-col py-6 pr-6">
+        <aside className="hidden lg:block">
+          <div className="sticky top-[98px] flex h-[calc(100vh-98px)] w-72 shrink-0 flex-col py-6 pr-6">
             <nav className="ui-panel flex flex-1 flex-col gap-2 rounded-[28px] p-6">
               {navItems.map((item) => (
                 <NavLink

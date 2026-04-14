@@ -6,27 +6,14 @@ import { Button } from '../components/atoms/Button'
 import { useTranslation } from 'react-i18next'
 import PageHero from '../components/page/PageHero'
 import SectionCard from '../components/page/SectionCard'
-import StatCard from '../components/page/StatCard'
 import SettingsDirectory from '../components/SettingsDirectory'
 
-type SettingsSectionId = 'overview' | 'smb' | 'stt' | 'translate'
+type SettingsSectionId = 'smb' | 'stt' | 'translate'
 
 interface ConfigField {
   key: string
   label: string
   secret?: boolean
-}
-
-function OverviewMetric({ title, value, hint }: { title: string; value: string | number; hint: string }) {
-  return (
-    <div className="rounded-[20px] border border-outline-variant bg-surface-container-low p-4">
-      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
-        {title}
-      </p>
-      <p className="mt-2 text-2xl font-black tracking-[-0.04em] text-on-surface">{value}</p>
-      <p className="mt-2 text-sm text-on-surface-variant">{hint}</p>
-    </div>
-  )
 }
 
 function FormField({
@@ -106,13 +93,13 @@ export default function SettingsPage() {
     password: '',
   })
   const [testing, setTesting] = useState<number | null>(null)
-  const [testResult, setTestResult] = useState<Record<number, string>>({})
+  const [testResult, setTestResult] = useState<Record<number, { ok: boolean; error?: string }>>({})
+  const [errorModal, setErrorModal] = useState<string | null>(null)
   const [sttForm, setSttForm] = useState<Record<string, string>>({})
   const [translateForm, setTranslateForm] = useState<Record<string, string>>({})
-  const [activeSection, setActiveSection] = useState<SettingsSectionId>('overview')
+  const [activeSection, setActiveSection] = useState<SettingsSectionId>('smb')
 
   const sectionRefs = {
-    overview: useRef<HTMLElement | null>(null),
     smb: useRef<HTMLElement | null>(null),
     stt: useRef<HTMLElement | null>(null),
     translate: useRef<HTMLElement | null>(null),
@@ -120,7 +107,6 @@ export default function SettingsPage() {
 
   const sections = useMemo(
     () => [
-      { id: 'overview', label: t('settings.overview'), description: t('settings.overviewDesc') },
       { id: 'smb', label: t('settings.smbServers'), description: t('settings.smbDesc') },
       { id: 'stt', label: t('settings.sttTitle'), description: t('settings.sttDesc') },
       { id: 'translate', label: t('settings.transTitle'), description: t('settings.translateDesc') },
@@ -163,15 +149,14 @@ export default function SettingsPage() {
 
   const handleTest = async (id: number) => {
     setTesting(id)
+    setTestResult((current) => { const next = { ...current }; delete next[id]; return next })
 
     try {
       const result = await smbApi.test(id)
-      setTestResult((current) => ({
-        ...current,
-        [id]: result.ok ? t('common.success') : result.error ?? t('common.failed'),
-      }))
-    } catch {
-      setTestResult((current) => ({ ...current, [id]: t('common.error') }))
+      setTestResult((current) => ({ ...current, [id]: { ok: result.ok, error: result.error } }))
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : t('common.error')
+      setTestResult((current) => ({ ...current, [id]: { ok: false, error: msg } }))
     }
 
     setTesting(null)
@@ -224,41 +209,11 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHero
-        eyebrow="Settings Workspace"
         title={t('settings.title')}
         description={t('settings.heroDesc')}
-        aside={
-          <div className="rounded-[22px] border border-outline-variant bg-surface-container-low px-4 py-4 shadow-[var(--shadow-soft)]">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
-              {t('settings.connectionHint')}
-            </p>
-            <p className="mt-2 text-3xl font-black tracking-[-0.05em] text-on-surface">
-              {servers?.length ?? 0}
-            </p>
-          </div>
-        }
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard
-          title={t('settings.serverCount')}
-          value={servers?.length ?? 0}
-          hint={t('settings.smbDesc')}
-        />
-        <StatCard
-          title={t('settings.engineCount')}
-          value={2}
-          hint={t('settings.connectionHint')}
-          tone="accent"
-        />
-        <StatCard
-          title={t('settings.overview')}
-          value={activeSection}
-          hint={t('settings.directoryTitle')}
-        />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
+      <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)]">
         <SettingsDirectory
           title={t('settings.directoryTitle')}
           sections={sections}
@@ -267,31 +222,6 @@ export default function SettingsPage() {
         />
 
         <div className="flex flex-col gap-6">
-          <SectionCard
-            className="scroll-mt-28"
-            eyebrow="Overview"
-            title={t('settings.overviewTitle')}
-            description={t('settings.overviewDesc')}
-          >
-            <section ref={sectionRefs.overview} id="settings-overview" className="grid gap-4 md:grid-cols-3">
-              <OverviewMetric
-                title={t('settings.serverCount')}
-                value={servers?.length ?? 0}
-                hint={t('settings.smbDesc')}
-              />
-              <OverviewMetric
-                title={t('settings.engineCount')}
-                value={2}
-                hint={t('settings.connectionHint')}
-              />
-              <OverviewMetric
-                title={t('settings.directoryTitle')}
-                value={sections.length}
-                hint={t('settings.translateDesc')}
-              />
-            </section>
-          </SectionCard>
-
           <section ref={sectionRefs.smb} className="scroll-mt-28">
             <SectionCard
               eyebrow="Storage"
@@ -299,36 +229,62 @@ export default function SettingsPage() {
               description={t('settings.smbDesc')}
             >
               <div className="space-y-4">
-                <div className="space-y-3">
-                  {servers?.map((server) => (
-                    <div
-                      key={server.id}
-                      className="flex flex-col gap-4 rounded-[20px] border border-outline-variant bg-surface-container-low p-4 md:flex-row md:items-start md:justify-between"
-                    >
-                      <div className="space-y-2">
-                        <p className="text-lg font-bold tracking-[-0.03em] text-on-surface">{server.name}</p>
-                        <p className="text-sm text-on-surface-variant">
-                          {server.username}@{server.host}/{server.share}
-                        </p>
-                        {testResult[server.id] ? (
-                          <p className="text-sm font-semibold text-primary">{testResult[server.id]}</p>
-                        ) : null}
-                      </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {servers?.map((server) => {
+                    const result = testResult[server.id]
+                    const isTesting = testing === server.id
+                    const testBtnClass = result
+                      ? result.ok
+                        ? 'border-[var(--color-success,#22c55e)] bg-[var(--color-success,#22c55e)]/10 text-[var(--color-success,#22c55e)] hover:bg-[var(--color-success,#22c55e)]/20'
+                        : 'border-error bg-error-container text-on-error-container hover:bg-error/20'
+                      : ''
+                    return (
+                      <div
+                        key={server.id}
+                        className="flex flex-col gap-3 rounded-[20px] border border-outline-variant bg-surface-container-low p-4 xl:flex-row xl:items-center xl:justify-between"
+                      >
+                        <div className="min-w-0 space-y-1">
+                          <p className="text-base font-bold tracking-[-0.03em] text-on-surface">{server.name}</p>
+                          <p className="truncate text-sm text-on-surface-variant">
+                            {server.username}@{server.host}/{server.share}
+                          </p>
+                        </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="secondary"
-                          onClick={() => handleTest(server.id)}
-                          disabled={testing === server.id}
-                        >
-                          {testing === server.id ? t('settings.testing') : t('settings.ping')}
-                        </Button>
-                        <Button variant="ghost" onClick={() => handleDelete(server.id)}>
-                          {t('common.delete')}
-                        </Button>
+                        <div className="flex shrink-0 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (result && !result.ok && result.error) {
+                                setErrorModal(result.error)
+                              } else {
+                                void handleTest(server.id)
+                              }
+                            }}
+                            disabled={isTesting}
+                            className={[
+                              'inline-flex items-center justify-center rounded-xl border px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50',
+                              testBtnClass || 'border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary hover:text-primary',
+                            ].join(' ')}
+                          >
+                            {isTesting
+                              ? t('settings.testing')
+                              : result
+                                ? result.ok
+                                  ? t('common.success')
+                                  : t('common.failed')
+                                : t('settings.ping')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(server.id)}
+                            className="inline-flex items-center justify-center rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs font-semibold text-on-surface-variant transition-colors hover:border-error hover:text-error"
+                          >
+                            {t('common.delete')}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 <div className="rounded-[22px] border border-outline-variant bg-surface-container-low p-5">
@@ -393,6 +349,27 @@ export default function SettingsPage() {
           </section>
         </div>
       </div>
+
+      {/* 错误详情弹窗 */}
+      {errorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setErrorModal(null)}
+          />
+          <div className="relative w-full max-w-md rounded-[24px] border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
+            <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-error">
+              {t('common.error')}
+            </p>
+            <p className="text-sm leading-relaxed text-on-surface">{errorModal}</p>
+            <div className="mt-5 flex justify-end">
+              <Button variant="secondary" onClick={() => setErrorModal(null)}>
+                {t('common.close')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

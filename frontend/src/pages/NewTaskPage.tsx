@@ -82,23 +82,23 @@ export default function NewTaskPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHero
-        eyebrow="Task Intake"
+        // eyebrow="Task Intake"
         title={t('newTask.title')}
         description={t('newTask.heroDesc')}
-        aside={
-          <div className="space-y-3 rounded-[22px] border border-outline-variant bg-surface-container-low px-4 py-4 shadow-[var(--shadow-soft)]">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
-              Dispatch Readiness
-            </p>
-            <p className="text-3xl font-black tracking-[-0.05em] text-on-surface">{selectedFiles.length}</p>
-            <p className="text-sm text-on-surface-variant">
-              {t('newTask.selectedArgs', { count: selectedFiles.length })}
-            </p>
-          </div>
-        }
+        // aside={
+        //   <div className="space-y-3 rounded-[22px] border border-outline-variant bg-surface-container-low px-4 py-4 shadow-[var(--shadow-soft)]">
+        //     <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
+        //       Dispatch Readiness
+        //     </p>
+        //     <p className="text-3xl font-black tracking-[-0.05em] text-on-surface">{selectedFiles.length}</p>
+        //     <p className="text-sm text-on-surface-variant">
+        //       {t('newTask.selectedArgs', { count: selectedFiles.length })}
+        //     </p>
+        //   </div>
+        // }
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      {/*<div className="grid gap-4 md:grid-cols-3">
         <StatCard
           title={t('newTask.smbServer')}
           value={serverId ? 1 : 0}
@@ -115,11 +115,11 @@ export default function NewTaskPage() {
           value={translateEngine}
           hint={t('newTask.submitHint')}
         />
-      </div>
+      </div>*/}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
         <SectionCard
-          eyebrow="Workflow"
+          eyebrow="SERVER"
           title={t('newTask.pipelineTitle')}
           description={t('newTask.pipelineDesc')}
         >
@@ -131,39 +131,32 @@ export default function NewTaskPage() {
               >
                 {t('newTask.smbServer')}
               </label>
-              <select
-                id="new-task-server"
-                aria-label={t('newTask.smbServer')}
-                value={serverId ?? ''}
-                onChange={e => {
-                  const nextValue = e.target.value
-                  setServerId(nextValue ? Number(nextValue) : null)
-                  setSelectedFiles([])
-                }}
-                className="w-full rounded-2xl px-4 py-3 text-sm"
-              >
-                <option value="">{t('newTask.selectServer')}</option>
-                {servers?.map(s => <option key={s.id} value={s.id}>{s.name} ({s.host})</option>)}
-              </select>
+              <div className="relative">
+                <select
+                  id="new-task-server"
+                  aria-label={t('newTask.smbServer')}
+                  value={serverId ?? ''}
+                  onChange={e => {
+                    const nextValue = e.target.value
+                    setServerId(nextValue ? Number(nextValue) : null)
+                    setSelectedFiles([])
+                  }}
+                  className="w-full appearance-none rounded-2xl px-4 py-3 pr-11 text-sm"
+                >
+                  <option value="">{t('newTask.selectServer')}</option>
+                  {servers?.map(s => <option key={s.id} value={s.id}>{s.name} ({s.host})</option>)}
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-on-surface-variant">
+                  <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="m5 7.5 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </div>
             </div>
 
             {serverId ? (
               <SMBFileBrowser serverId={serverId} selected={selectedFiles} onToggle={toggleFile} />
-            ) : (
-              <div className="empty-state">
-                <div className="mx-auto max-w-md space-y-3">
-                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
-                    SMB
-                  </p>
-                  <h3 className="text-xl font-bold tracking-[-0.03em] text-on-surface">
-                    {t('newTask.selectServer')}
-                  </h3>
-                  <p className="text-sm leading-6 text-on-surface-variant">
-                    {t('newTask.pipelineDesc')}
-                  </p>
-                </div>
-              </div>
-            )}
+            ) : ""}
           </div>
         </SectionCard>
 
@@ -245,7 +238,7 @@ export default function NewTaskPage() {
                 </ul>
               ) : (
                 <div className="rounded-[18px] border border-dashed border-outline-variant bg-surface-container-low p-5 text-sm text-on-surface-variant">
-                  {t('newTask.selectionDesc')}
+                  {t('newTask.selectionEmpty')}
                 </div>
               )}
 

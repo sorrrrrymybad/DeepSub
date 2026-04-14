@@ -58,6 +58,8 @@ export const tasksApi = {
 
   cancel: (id: number) => client.delete(`/tasks/${id}`),
 
+  remove: (id: number) => client.delete(`/tasks/${id}/remove`),
+
   retry: (id: number) => client.post<Task>(`/tasks/${id}/retry`).then(r => r.data),
 
   getLogsUrl: (id: number) => `/api/tasks/${id}/logs`,
