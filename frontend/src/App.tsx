@@ -5,6 +5,7 @@ import TasksPage from './pages/TasksPage'
 import NewTaskPage from './pages/NewTaskPage'
 import SettingsPage from './pages/SettingsPage'
 import { WebSocketProvider } from './context/WebSocketContext'
+import { ToastProvider } from './context/ToastContext'
 
 const queryClient = new QueryClient()
 
@@ -12,6 +13,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <WebSocketProvider>
+        <ToastProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Layout />}>
@@ -22,6 +24,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        </ToastProvider>
       </WebSocketProvider>
     </QueryClientProvider>
   )

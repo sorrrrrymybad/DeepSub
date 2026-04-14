@@ -116,12 +116,12 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const entries = (Object.entries(sectionRefs) as Array<[SettingsSectionId, typeof sectionRefs.overview]>)
+      const entries = (Object.entries(sectionRefs) as Array<[SettingsSectionId, typeof sectionRefs.smb]>)
         .map(([id, ref]) => ({ id, top: ref.current?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY }))
         .filter((item) => Number.isFinite(item.top))
 
       const current = entries
-        .filter((item) => item.top <= 180)
+        .filter((item) => item.top <= 240)
         .sort((a, b) => b.top - a.top)[0]
         ?? entries.sort((a, b) => a.top - b.top)[0]
 
@@ -222,7 +222,7 @@ export default function SettingsPage() {
         />
 
         <div className="flex flex-col gap-6">
-          <section ref={sectionRefs.smb} className="scroll-mt-28">
+          <section ref={sectionRefs.smb} className="scroll-mt-[122px]">
             <SectionCard
               eyebrow="Storage"
               title={t('settings.smbServers')}
@@ -318,7 +318,7 @@ export default function SettingsPage() {
             </SectionCard>
           </section>
 
-          <section ref={sectionRefs.stt} className="scroll-mt-28">
+          <section ref={sectionRefs.stt} className="scroll-mt-[122px]">
             <SectionCard
               eyebrow="Speech"
               title={t('settings.sttTitle')}
@@ -333,7 +333,7 @@ export default function SettingsPage() {
             </SectionCard>
           </section>
 
-          <section ref={sectionRefs.translate} className="scroll-mt-28">
+          <section ref={sectionRefs.translate} className="scroll-mt-[122px]">
             <SectionCard
               eyebrow="Translation"
               title={t('settings.transTitle')}
