@@ -16,8 +16,12 @@ def _is_sensitive(key: str) -> bool:
 
 
 def _upsert(db: Session, key: str, value: str) -> None:
-    encrypted_value = encrypt(value) if _is_sensitive(key) else value
     setting = db.query(Setting).filter(Setting.key == key).first()
+    if value == "":
+        if setting:
+            db.delete(setting)
+        return
+    encrypted_value = encrypt(value) if _is_sensitive(key) else value
     if setting:
         setting.value = encrypted_value
     else:
@@ -72,6 +76,7 @@ def get_translate_settings(db: Session = Depends(get_db)):
         ("claude_api_key", "translate.claude.api_key"),
         ("claude_model", "translate.claude.model"),
         ("claude_base_url", "translate.claude.base_url"),
+        ("batch_size", "translate.batch_size"),
     ]
     return {field: _get_val(db, key) for field, key in keys}
 
@@ -90,6 +95,7 @@ def update_translate_settings(
         "claude_api_key": "translate.claude.api_key",
         "claude_model": "translate.claude.model",
         "claude_base_url": "translate.claude.base_url",
+        "batch_size": "translate.batch_size",
     }
     for field, key in mapping.items():
         value = getattr(data, field)

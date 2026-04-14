@@ -123,7 +123,7 @@ export default function SettingsPage() {
         .filter((item) => Number.isFinite(item.top))
 
       const current = entries
-        .filter((item) => item.top <= 240)
+        .filter((item) => item.top <= 130)
         .sort((a, b) => b.top - a.top)[0]
         ?? entries.sort((a, b) => a.top - b.top)[0]
 
@@ -218,16 +218,47 @@ export default function SettingsPage() {
     { key: 'openai_whisper_api_key', label: t('settings.fields.openaiWhisper'), secret: true },
   ]
 
-  const translateFields: ConfigField[] = [
-    { key: 'deeplx_endpoint', label: t('settings.fields.deeplxEndpoint') },
-    { key: 'deepl_api_key', label: t('settings.fields.deeplKey'), secret: true },
-    { key: 'google_api_key', label: t('settings.fields.googleKey'), secret: true },
-    { key: 'openai_api_key', label: t('settings.fields.openaiKey'), secret: true },
-    { key: 'openai_model', label: t('settings.fields.openaiModel') },
-    { key: 'openai_base_url', label: t('settings.fields.openaiBase') },
-    { key: 'claude_api_key', label: t('settings.fields.claudeKey'), secret: true },
-    { key: 'claude_model', label: t('settings.fields.claudeModel') },
-    { key: 'claude_base_url', label: t('settings.fields.claudeBase') },
+  const translateGroups: Array<{ label: string; fields: ConfigField[] }> = [
+    {
+      label: t('settings.groups.general'),
+      fields: [
+        { key: 'batch_size', label: t('settings.fields.batchSize') },
+      ],
+    },
+    {
+      label: 'DeepLX',
+      fields: [
+        { key: 'deeplx_endpoint', label: t('settings.fields.deeplxEndpoint') },
+      ],
+    },
+    {
+      label: 'DeepL',
+      fields: [
+        { key: 'deepl_api_key', label: t('settings.fields.deeplKey'), secret: true },
+      ],
+    },
+    {
+      label: 'Google Translate',
+      fields: [
+        { key: 'google_api_key', label: t('settings.fields.googleKey'), secret: true },
+      ],
+    },
+    {
+      label: 'OpenAI',
+      fields: [
+        { key: 'openai_api_key', label: t('settings.fields.openaiKey'), secret: true },
+        { key: 'openai_model', label: t('settings.fields.openaiModel') },
+        { key: 'openai_base_url', label: t('settings.fields.openaiBase') },
+      ],
+    },
+    {
+      label: 'Claude',
+      fields: [
+        { key: 'claude_api_key', label: t('settings.fields.claudeKey'), secret: true },
+        { key: 'claude_model', label: t('settings.fields.claudeModel') },
+        { key: 'claude_base_url', label: t('settings.fields.claudeBase') },
+      ],
+    },
   ]
 
   return (
@@ -358,11 +389,24 @@ export default function SettingsPage() {
               description={t('settings.translateDesc')}
               actions={<Button variant="secondary" onClick={handleSaveTranslate}>{t('settings.commitTrans')}</Button>}
             >
-              <ConfigFieldsSection
-                fields={translateFields}
-                values={{ ...(translateData ?? {}), ...translateForm } as Record<string, string>}
-                onChange={(key, value) => setTranslateForm((current) => ({ ...current, [key]: value }))}
-              />
+              <div className="flex flex-col gap-6">
+                {(() => {
+                  const mergedValues = { ...(translateData ?? {}), ...translateForm } as Record<string, string>
+                  if (!mergedValues['batch_size']) mergedValues['batch_size'] = '1'
+                  return translateGroups.map((group) => (
+                    <div key={group.label}>
+                      <p className="mb-3 text-[0.9rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant underline">
+                        {group.label}
+                      </p>
+                      <ConfigFieldsSection
+                        fields={group.fields}
+                        values={mergedValues}
+                        onChange={(key, value) => setTranslateForm((current) => ({ ...current, [key]: value }))}
+                      />
+                    </div>
+                  ))
+                })()}
+              </div>
             </SectionCard>
           </section>
         </div>

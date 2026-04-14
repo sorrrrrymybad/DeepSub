@@ -26,6 +26,18 @@ from worker.subtitle_extractor import (
 logger = logging.getLogger(__name__)
 
 
+def _check_cancelled(task_id: int) -> None:
+    """Raise if a cancel signal has been set for this task."""
+    try:
+        redis_client = sync_redis.from_url(settings.redis_url)
+        if redis_client.getdel(f"cancel:{task_id}"):
+            raise InterruptedError(f"Task {task_id} was cancelled")
+    except InterruptedError:
+        raise
+    except Exception:
+        pass
+
+
 def _get_log_path(task_id: int) -> str:
     return str(settings.log_dir / f"{task_id}.log")
 
@@ -127,7 +139,7 @@ def process_subtitle_task(self, task_id: int):
             db,
             task_id,
             status="running",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(timezone.utc).replace(tzinfo=None),
             celery_task_id=self.request.id,
             progress=5,
         )
@@ -140,8 +152,10 @@ def process_subtitle_task(self, task_id: int):
 
         local_video = os.path.join(tmp_dir, "video" + Path(task.file_path).suffix)
         task_logger.info("Downloading video from SMB...")
+        _check_cancelled(task_id)
         client.download_file(task.file_path, local_video)
         _update_task(db, task_id, progress=20)
+        _check_cancelled(task_id)
 
         tracks = probe_subtitle_tracks(local_video)
         task_logger.info("Found %s subtitle track(s)", len(tracks))
@@ -154,6 +168,7 @@ def process_subtitle_task(self, task_id: int):
             )
             extract_subtitle_track(local_video, best.index, extracted_srt)
             _update_task(db, task_id, progress=40)
+            _check_cancelled(task_id)
             subs = pysrt.open(extracted_srt)
             segments = [
                 {
@@ -184,18 +199,27 @@ def process_subtitle_task(self, task_id: int):
                 timeout=1800,
             )
             _update_task(db, task_id, progress=40)
+            _check_cancelled(task_id)
             stt_engine = _build_stt_engine(task.stt_engine, db)
             language = task.source_lang if task.source_lang != "auto" else None
             segments = stt_engine.transcribe(audio_path, language=language)
 
         task_logger.info("Got %s segments, starting translation...", len(segments))
         _update_task(db, task_id, progress=60)
+        _check_cancelled(task_id)
 
         translator = _build_translate_engine(task.translate_engine, db)
+        from models.setting import Setting as _Setting
+        _batch_setting = db.query(_Setting).filter(_Setting.key == "translate.batch_size").first()
+        try:
+            batch_size = int(_batch_setting.value) if _batch_setting else 1
+        except (ValueError, TypeError):
+            batch_size = 1
         translated = translator.translate_batch(
             [segment["text"] for segment in segments],
             source_lang=task.source_lang,
             target_lang=task.target_lang,
+            batch_size=batch_size,
         )
         for segment, translated_text in zip(segments, translated):
             segment["text"] = translated_text
@@ -220,9 +244,17 @@ def process_subtitle_task(self, task_id: int):
             task_id,
             status="done",
             progress=100,
-            finished_at=datetime.now(timezone.utc),
+            finished_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
         task_logger.info("Task completed successfully.")
+    except InterruptedError:
+        task_logger.info("Task cancelled by user request.")
+        _update_task(
+            db,
+            task_id,
+            status="cancelled",
+            finished_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        )
     except Exception as exc:
         task_logger.exception("Task failed: %s", exc)
         _update_task(
@@ -230,7 +262,7 @@ def process_subtitle_task(self, task_id: int):
             task_id,
             status="failed",
             error_message=str(exc)[:500],
-            finished_at=datetime.now(timezone.utc),
+            finished_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)

@@ -98,18 +98,22 @@ const resources = {
         serverDeleted: "Server removed",
         sttSaved: "ASR Engine Config Saved",
         transSaved: "Translation Engine Config Saved",
+        groups: {
+          general: "General"
+        },
         fields: {
           whisperLocal: "Whisper Local Model (tiny/base/small/medium/large)",
           openaiWhisper: "OpenAI Whisper API Key",
-          deeplxEndpoint: "DeepLX Endpoint URL",
-          deeplKey: "DeepL API Key",
-          googleKey: "Google Translate API Key",
-          openaiKey: "OpenAI API Key",
-          openaiModel: "OpenAI Model (gpt-x)",
-          openaiBase: "OpenAI Base URL (Optional)",
-          claudeKey: "Claude API Key",
-          claudeModel: "Claude Model",
-          claudeBase: "Claude Base URL (Optional)"
+          deeplxEndpoint: "Base URL",
+          deeplKey: "API Key",
+          googleKey: "API Key",
+          openaiKey: "API Key",
+          openaiModel: "Model (gpt-x)",
+          openaiBase: "Base URL (Optional)",
+          claudeKey: "API Key",
+          claudeModel: "Model",
+          claudeBase: "Base URL (Optional)",
+          batchSize: "Sentences per API Call (batch size)"
         }
       },
       drawer: {
@@ -240,18 +244,22 @@ const resources = {
         serverDeleted: "服务器已移除",
         sttSaved: "ASR 引擎配置已保存",
         transSaved: "翻译引擎配置已保存",
+        groups: {
+          general: "通用"
+        },
         fields: {
           whisperLocal: "本地 Whisper 模型 (tiny/base/small/medium/large)",
           openaiWhisper: "OpenAI Whisper API Key",
-          deeplxEndpoint: "DeepLX Endpoint URL",
-          deeplKey: "DeepL API Key",
-          googleKey: "Google Translate API Key",
-          openaiKey: "OpenAI API Key",
-          openaiModel: "OpenAI 模型 (gpt-x)",
-          openaiBase: "OpenAI Base URL (可选)",
-          claudeKey: "Claude API Key",
-          claudeModel: "Claude 模型",
-          claudeBase: "Claude Base URL (可选)"
+          deeplxEndpoint: "Base URL",
+          deeplKey: "API Key",
+          googleKey: "API Key",
+          openaiKey: "API Key",
+          openaiModel: "翻译模型 (gpt-x)",
+          openaiBase: "Base URL (可选)",
+          claudeKey: "API Key",
+          claudeModel: "翻译模型",
+          claudeBase: "Base URL (可选)",
+          batchSize: "每次 API 调用合并句数"
         }
       },
       drawer: {

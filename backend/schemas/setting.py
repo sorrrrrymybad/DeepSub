@@ -18,3 +18,4 @@ class TranslateSettingsUpdate(BaseModel):
     claude_api_key: str | None = None
     claude_model: str | None = None
     claude_base_url: str | None = None
+    batch_size: str | None = None

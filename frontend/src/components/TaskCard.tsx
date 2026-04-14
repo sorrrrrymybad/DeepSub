@@ -1,20 +1,41 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Task } from '../api/tasks'
 import { tasksApi } from '../api/tasks'
 import { useQueryClient } from '@tanstack/react-query'
 import { Badge } from './atoms/Badge'
 import TaskLogDrawer from './TaskLogDrawer'
-import dayjs from 'dayjs'
 import { useTranslation } from 'react-i18next'
+
+function formatSeconds(s: number): string {
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+  if (m > 0) return `${m}:${String(sec).padStart(2, '0')}`
+  return `${sec}s`
+}
 
 export default function TaskCard({ task }: { task: Task }) {
   const qc = useQueryClient()
   const { t } = useTranslation()
   const [showLog, setShowLog] = useState(false)
+  const [elapsed, setElapsed] = useState<number>(task.elapsed_seconds ?? 0)
 
-  const duration = task.started_at && task.finished_at
-    ? dayjs(task.finished_at).diff(dayjs(task.started_at), 'second') + 's'
-    : null
+  useEffect(() => {
+    setElapsed(task.elapsed_seconds ?? 0)
+  }, [task.elapsed_seconds])
+
+  useEffect(() => {
+    if (task.status !== 'running') return
+    const timer = setInterval(() => setElapsed((e) => e + 1), 1000)
+    return () => clearInterval(timer)
+  }, [task.status])
+
+  const duration = task.status === 'running'
+    ? formatSeconds(elapsed)
+    : task.elapsed_seconds != null
+      ? formatSeconds(task.elapsed_seconds)
+      : null
 
   const handleCancel = async () => {
     await tasksApi.cancel(task.id)

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class TaskCreate(BaseModel):
@@ -31,8 +32,20 @@ class TaskResponse(BaseModel):
     started_at: datetime | None
     finished_at: datetime | None
     created_at: datetime
+    elapsed_seconds: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def compute_elapsed(self) -> "TaskResponse":
+        if self.started_at is None:
+            self.elapsed_seconds = None
+        elif self.finished_at is not None:
+            self.elapsed_seconds = max(0, int((self.finished_at - self.started_at).total_seconds()))
+        else:
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            self.elapsed_seconds = max(0, int((now - self.started_at).total_seconds()))
+        return self
 
 
 class TaskListResponse(BaseModel):

@@ -86,9 +86,19 @@ def cancel_task(task_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Task not found")
 
     if task.celery_task_id:
-        from celery.result import AsyncResult
+        try:
+            from celery.result import AsyncResult
 
-        AsyncResult(task.celery_task_id).revoke(terminate=True)
+            AsyncResult(task.celery_task_id).revoke(terminate=True)
+        except Exception:
+            pass
+    try:
+        import redis as sync_redis
+        from core.config import settings as app_settings
+
+        sync_redis.from_url(app_settings.redis_url).set(f"cancel:{task_id}", "1", ex=3600)
+    except Exception:
+        pass
     task.status = "cancelled"
     db.commit()
 
@@ -100,9 +110,12 @@ def remove_task(task_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Task not found")
 
     if task.celery_task_id and task.status == "running":
-        from celery.result import AsyncResult
+        try:
+            from celery.result import AsyncResult
 
-        AsyncResult(task.celery_task_id).revoke(terminate=True)
+            AsyncResult(task.celery_task_id).revoke(terminate=True)
+        except Exception:
+            pass
     db.delete(task)
     db.commit()
 

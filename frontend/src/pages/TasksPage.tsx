@@ -29,13 +29,16 @@ export default function TasksPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['tasks', status, page],
     queryFn: () => tasksApi.list({ status: status || undefined, page, page_size: 20 }),
-    refetchInterval: 5000,
+    refetchInterval: (query) => {
+      const items = query.state.data?.items ?? []
+      return items.some((t) => t.status === 'running') ? 1000 : 5000
+    },
   })
 
   const { data: summary } = useQuery<TaskSummary>({
     queryKey: ['tasks', 'summary'],
     queryFn: () => tasksApi.summary(),
-    refetchInterval: 5000,
+    refetchInterval: (query) => ((query.state.data?.running ?? 0) > 0 ? 1000 : 5000),
   })
 
   const items = data?.items ?? []
