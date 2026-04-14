@@ -46,6 +46,7 @@ function FormField({
         value={value ?? ''}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
+        autoComplete="off"
         className="w-full rounded-2xl px-4 py-3 text-sm"
       />
     </div>
@@ -143,9 +144,14 @@ export default function SettingsPage() {
   }
 
   const handleCreate = async () => {
-    await smbApi.create(form)
-    qc.invalidateQueries({ queryKey: ['smb-servers'] })
-    setForm({ name: '', host: '', port: 445, share: '', username: '', password: '' })
+    try {
+      await smbApi.create(form)
+      qc.invalidateQueries({ queryKey: ['smb-servers'] })
+      setForm({ name: '', host: '', port: 445, share: '', username: '', password: '' })
+      show(t('settings.serverAdded'), 'success')
+    } catch (e: unknown) {
+      show(e instanceof Error ? e.message : t('common.error'), 'error')
+    }
   }
 
   const handleTest = async (id: number) => {
@@ -169,20 +175,33 @@ export default function SettingsPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm(t('settings.confirmDel'))) return
-    await smbApi.delete(id)
-    qc.invalidateQueries({ queryKey: ['smb-servers'] })
+    try {
+      await smbApi.delete(id)
+      qc.invalidateQueries({ queryKey: ['smb-servers'] })
+      show(t('settings.serverDeleted'), 'success')
+    } catch (e: unknown) {
+      show(e instanceof Error ? e.message : t('common.error'), 'error')
+    }
   }
 
   const handleSaveSTT = async () => {
-    await settingsApi.patchSTT(sttForm)
-    qc.invalidateQueries({ queryKey: ['settings-stt'] })
-    alert(t('settings.sttSaved'))
+    try {
+      await settingsApi.patchSTT(sttForm)
+      qc.invalidateQueries({ queryKey: ['settings-stt'] })
+      show(t('settings.sttSaved'), 'success')
+    } catch (e: unknown) {
+      show(e instanceof Error ? e.message : t('common.error'), 'error')
+    }
   }
 
   const handleSaveTranslate = async () => {
-    await settingsApi.patchTranslate(translateForm)
-    qc.invalidateQueries({ queryKey: ['settings-translate'] })
-    alert(t('settings.transSaved'))
+    try {
+      await settingsApi.patchTranslate(translateForm)
+      qc.invalidateQueries({ queryKey: ['settings-translate'] })
+      show(t('settings.transSaved'), 'success')
+    } catch (e: unknown) {
+      show(e instanceof Error ? e.message : t('common.error'), 'error')
+    }
   }
 
   const serverFields = [
@@ -326,7 +345,7 @@ export default function SettingsPage() {
             >
               <ConfigFieldsSection
                 fields={sttFields}
-                values={(sttData ?? {}) as Record<string, string>}
+                values={{ ...(sttData ?? {}), ...sttForm } as Record<string, string>}
                 onChange={(key, value) => setSttForm((current) => ({ ...current, [key]: value }))}
               />
             </SectionCard>
@@ -341,7 +360,7 @@ export default function SettingsPage() {
             >
               <ConfigFieldsSection
                 fields={translateFields}
-                values={(translateData ?? {}) as Record<string, string>}
+                values={{ ...(translateData ?? {}), ...translateForm } as Record<string, string>}
                 onChange={(key, value) => setTranslateForm((current) => ({ ...current, [key]: value }))}
               />
             </SectionCard>

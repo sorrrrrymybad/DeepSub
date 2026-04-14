@@ -9,9 +9,11 @@ import StatCard from '../components/page/StatCard'
 import SectionCard from '../components/page/SectionCard'
 import FilterTabs from '../components/page/FilterTabs'
 import EmptyState from '../components/page/EmptyState'
+import { useToast } from '../context/ToastContext'
 
 export default function TasksPage() {
   const { t } = useTranslation()
+  const { show } = useToast()
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
   const qc = useQueryClient()
@@ -40,8 +42,12 @@ export default function TasksPage() {
 
   const handleBatchCancel = async () => {
     const running = data?.items.filter(t => t.status === 'running') ?? []
-    await Promise.all(running.map(ta => tasksApi.cancel(ta.id)))
-    qc.invalidateQueries({ queryKey: ['tasks'] })
+    try {
+      await Promise.all(running.map(ta => tasksApi.cancel(ta.id)))
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+    } catch (e: unknown) {
+      show(e instanceof Error ? e.message : t('common.error'), 'error')
+    }
   }
 
   return (

@@ -10,9 +10,11 @@ import { useTranslation } from 'react-i18next'
 import PageHero from '../components/page/PageHero'
 import SectionCard from '../components/page/SectionCard'
 import StatCard from '../components/page/StatCard'
+import { useToast } from '../context/ToastContext'
 
 export default function NewTaskPage() {
   const { t } = useTranslation()
+  const { show } = useToast()
   const navigate = useNavigate()
   const [serverId, setServerId] = useState<number | null>(null)
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
@@ -22,7 +24,6 @@ export default function NewTaskPage() {
   const [translateEngine, setTranslateEngine] = useState('deeplx')
   const [overwrite, setOverwrite] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
 
   const STT_ENGINES = [
     { value: 'whisper_local', label: t('engines.whisperLocal') },
@@ -54,12 +55,11 @@ export default function NewTaskPage() {
 
   const handleSubmit = async () => {
     if (!serverId || selectedFiles.length === 0) {
-      setError(t('newTask.errNoFiles'))
+      show(t('newTask.errNoFiles'), 'warning')
       return
     }
 
     setSubmitting(true)
-    setError('')
 
     try {
       await tasksApi.create({
@@ -73,7 +73,7 @@ export default function NewTaskPage() {
       })
       navigate('/tasks')
     } catch (e: any) {
-      setError(e.message)
+      show(e.message, 'error')
     } finally {
       setSubmitting(false)
     }
@@ -241,12 +241,6 @@ export default function NewTaskPage() {
                   {t('newTask.selectionEmpty')}
                 </div>
               )}
-
-              {error ? (
-                <p className="rounded-[18px] border border-error/30 bg-error-container px-4 py-3 text-sm text-on-error-container">
-                  {error}
-                </p>
-              ) : null}
 
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-on-surface-variant">{t('newTask.submitHint')}</p>

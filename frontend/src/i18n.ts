@@ -94,6 +94,8 @@ const resources = {
         transTitle: "Translation Engine Settings",
         commitTrans: "Commit Translation Config",
         confirmDel: "Confirm deletion of server index?",
+        serverAdded: "Server attached successfully",
+        serverDeleted: "Server removed",
         sttSaved: "ASR Engine Config Saved",
         transSaved: "Translation Engine Config Saved",
         fields: {
@@ -234,6 +236,8 @@ const resources = {
         transTitle: "翻译引擎设置",
         commitTrans: "提交翻译配置",
         confirmDel: "确定删除此服务器配置？",
+        serverAdded: "服务器已成功接入",
+        serverDeleted: "服务器已移除",
         sttSaved: "ASR 引擎配置已保存",
         transSaved: "翻译引擎配置已保存",
         fields: {
