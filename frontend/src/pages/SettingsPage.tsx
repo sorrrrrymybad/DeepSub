@@ -15,6 +15,8 @@ interface ConfigField {
   key: string
   label: string
   secret?: boolean
+  textarea?: boolean
+  placeholder?: string
 }
 
 function FormField({
@@ -64,17 +66,37 @@ function ConfigFieldsSection({
 }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      {fields.map((field) => (
-        <FormField
-          key={field.key}
-          id={field.key}
-          label={field.label}
-          type={field.secret ? 'password' : 'text'}
-          value={values[field.key] ?? ''}
-          placeholder={values[field.key] ?? ''}
-          onChange={(value) => onChange(field.key, value)}
-        />
-      ))}
+      {fields.map((field) =>
+        field.textarea ? (
+          <div key={field.key} className="md:col-span-2">
+            <label
+              htmlFor={field.key}
+              className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant"
+            >
+              {field.label}
+            </label>
+            <textarea
+              id={field.key}
+              rows={4}
+              value={values[field.key] ?? ''}
+              placeholder={field.placeholder ?? ''}
+              onChange={(e) => onChange(field.key, e.target.value)}
+              autoComplete="off"
+              className="w-full rounded-2xl px-4 py-3 text-sm resize-none"
+            />
+          </div>
+        ) : (
+          <FormField
+            key={field.key}
+            id={field.key}
+            label={field.label}
+            type={field.secret ? 'password' : 'text'}
+            value={values[field.key] ?? ''}
+            placeholder={values[field.key] ?? ''}
+            onChange={(value) => onChange(field.key, value)}
+          />
+        )
+      )}
     </div>
   )
 }
@@ -228,7 +250,7 @@ export default function SettingsPage() {
     {
       label: 'DeepLX',
       fields: [
-        { key: 'deeplx_endpoint', label: t('settings.fields.deeplxEndpoint') },
+        { key: 'deeplx_endpoint', label: t('settings.fields.deeplxEndpoint'), textarea: true, placeholder: t('settings.fields.deeplxEndpointPlaceholder') },
       ],
     },
     {

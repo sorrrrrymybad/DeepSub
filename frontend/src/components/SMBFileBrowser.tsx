@@ -86,7 +86,7 @@ export default function SMBFileBrowser({ serverId, selected, onToggle }: Props) 
               return (
                 <div
                   key={entry.name}
-                  className="border-b border-outline-variant/60 px-4 py-3 last:border-b-0"
+                  className="border-b border-outline-variant px-4 py-3 last:border-b-0"
                 >
                   {entry.is_dir ? (
                     <button

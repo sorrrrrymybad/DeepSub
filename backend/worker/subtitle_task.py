@@ -78,7 +78,9 @@ def _build_translate_engine(engine_name: str, db):
             return setting.value
 
     if engine_name == "deeplx":
-        return DeepLXEngine(endpoint=get_setting("translate.deeplx.endpoint"))
+        raw = get_setting("translate.deeplx.endpoint") or ""
+        endpoints = [u.strip() for u in raw.splitlines() if u.strip()]
+        return DeepLXEngine(endpoints=endpoints)
     if engine_name == "deepl":
         return DeepLEngine(api_key=get_setting("translate.deepl.api_key"))
     if engine_name == "google":

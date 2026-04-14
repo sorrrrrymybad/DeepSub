@@ -104,7 +104,8 @@ const resources = {
         fields: {
           whisperLocal: "Whisper Local Model (tiny/base/small/medium/large)",
           openaiWhisper: "OpenAI Whisper API Key",
-          deeplxEndpoint: "Base URL",
+          deeplxEndpoint: "API URLs (one per line)",
+          deeplxEndpointPlaceholder: "http://localhost:1188/translate\nhttp://host2:1188/translate",
           deeplKey: "API Key",
           googleKey: "API Key",
           openaiKey: "API Key",
@@ -250,7 +251,8 @@ const resources = {
         fields: {
           whisperLocal: "本地 Whisper 模型 (tiny/base/small/medium/large)",
           openaiWhisper: "OpenAI Whisper API Key",
-          deeplxEndpoint: "Base URL",
+          deeplxEndpoint: "API URLs（每行一个）",
+          deeplxEndpointPlaceholder: "http://localhost:1188/translate\nhttp://host2:1188/translate",
           deeplKey: "API Key",
           googleKey: "API Key",
           openaiKey: "API Key",
