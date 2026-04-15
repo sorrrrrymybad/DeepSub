@@ -72,6 +72,11 @@ const resources = {
         overview: "Overview",
         overviewTitle: "Workspace Overview",
         overviewDesc: "Keep the runtime environment, storage access, and engine credentials aligned before launching new jobs.",
+        systemTitle: "System Configuration",
+        systemDesc: "Adjust the system's runtime parameters.",
+        commitSystem: "Commit System Config",
+        systemSaved: "System Config Saved",
+        workerConcurrency: "Worker Concurrency (restart to apply)",
         smbDesc: "Manage SMB endpoints used by task intake and media browsing.",
         sttDesc: "Tune speech-to-text engines and secret material for recognition.",
         translateDesc: "Configure translation providers, model routing, and endpoint overrides.",
@@ -105,7 +110,7 @@ const resources = {
           whisperLocal: "Whisper Local Model (tiny/base/small/medium/large)",
           openaiWhisper: "OpenAI Whisper API Key",
           deeplxEndpoint: "API URLs (one per line)",
-          deeplxEndpointPlaceholder: "http://localhost:1188/translate\nhttp://host2:1188/translate",
+          deeplxEndpointPlaceholder: "Supports multiple address loop calls; please input one address per line.",
           deeplKey: "API Key",
           googleKey: "API Key",
           openaiKey: "API Key",
@@ -114,8 +119,8 @@ const resources = {
           claudeKey: "API Key",
           claudeModel: "Model",
           claudeBase: "Base URL (Optional)",
-          batchSize: "Sentences per API Call (batch size)"
-        }
+          batchSize: "Sentences per API Call (batch size)",
+        },
       },
       drawer: {
         title: "Task Logs #{{id}}",
@@ -219,6 +224,11 @@ const resources = {
         overview: "概览",
         overviewTitle: "工作区概览",
         overviewDesc: "在新任务投递前，对齐运行环境、存储访问和引擎凭据配置。",
+        systemTitle: "系统配置",
+        systemDesc: "调整系统的运行时参数。",
+        commitSystem: "提交系统配置",
+        systemSaved: "系统配置已保存",
+        workerConcurrency: "Worker 并发数（重启后生效）",
         smbDesc: "管理任务接入和媒体浏览使用的 SMB 端点。",
         sttDesc: "维护语音识别引擎和相关密钥材料。",
         translateDesc: "配置翻译提供方、模型路由和自定义端点。",
@@ -251,8 +261,8 @@ const resources = {
         fields: {
           whisperLocal: "本地 Whisper 模型 (tiny/base/small/medium/large)",
           openaiWhisper: "OpenAI Whisper API Key",
-          deeplxEndpoint: "API URLs（每行一个）",
-          deeplxEndpointPlaceholder: "http://localhost:1188/translate\nhttp://host2:1188/translate",
+          deeplxEndpoint: "API URL",
+          deeplxEndpointPlaceholder: "支持多个地址循环调用，请每行一个输入",
           deeplKey: "API Key",
           googleKey: "API Key",
           openaiKey: "API Key",
@@ -261,8 +271,8 @@ const resources = {
           claudeKey: "API Key",
           claudeModel: "翻译模型",
           claudeBase: "Base URL (可选)",
-          batchSize: "每次 API 调用合并句数"
-        }
+          batchSize: "每次 API 调用合并句数",
+        },
       },
       drawer: {
         title: "任务日志 #{{id}}",

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from api.deps import get_db
 from core.crypto import encrypt, mask_secret
 from models.setting import Setting
-from schemas.setting import STTSettingsUpdate, TranslateSettingsUpdate
+from schemas.setting import STTSettingsUpdate, SystemSettingsUpdate, TranslateSettingsUpdate
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -96,6 +96,26 @@ def update_translate_settings(
         "claude_model": "translate.claude.model",
         "claude_base_url": "translate.claude.base_url",
         "batch_size": "translate.batch_size",
+    }
+    for field, key in mapping.items():
+        value = getattr(data, field)
+        if value is not None:
+            _upsert(db, key, value)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/system")
+def get_system_settings(db: Session = Depends(get_db)):
+    return {
+        "worker_concurrency": _get_val(db, "worker.concurrency"),
+    }
+
+
+@router.patch("/system")
+def update_system_settings(data: SystemSettingsUpdate, db: Session = Depends(get_db)):
+    mapping = {
+        "worker_concurrency": "worker.concurrency",
     }
     for field, key in mapping.items():
         value = getattr(data, field)

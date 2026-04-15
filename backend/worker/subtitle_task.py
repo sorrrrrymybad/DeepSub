@@ -237,6 +237,7 @@ def process_subtitle_task(self, task_id: int):
             )
         else:
             local_srt = os.path.join(tmp_dir, output_srt_name)
+            os.makedirs(os.path.dirname(local_srt), exist_ok=True)
             segments_to_srt(segments, local_srt)
             task_logger.info("Uploading SRT to SMB: %s", output_srt_remote)
             client.upload_file(local_srt, output_srt_remote)

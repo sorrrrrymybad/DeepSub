@@ -9,7 +9,7 @@ import SectionCard from '../components/page/SectionCard'
 import SettingsDirectory from '../components/SettingsDirectory'
 import { useToast } from '../context/ToastContext'
 
-type SettingsSectionId = 'smb' | 'stt' | 'translate'
+type SettingsSectionId = 'system' | 'smb' | 'stt' | 'translate'
 
 interface ConfigField {
   key: string
@@ -106,6 +106,7 @@ export default function SettingsPage() {
   const { show } = useToast()
   const qc = useQueryClient()
   const { data: servers } = useQuery({ queryKey: ['smb-servers'], queryFn: smbApi.list })
+  const { data: systemData } = useQuery({ queryKey: ['settings-system'], queryFn: settingsApi.getSystem })
   const { data: sttData } = useQuery({ queryKey: ['settings-stt'], queryFn: settingsApi.getSTT })
   const { data: translateData } = useQuery({ queryKey: ['settings-translate'], queryFn: settingsApi.getTranslate })
 
@@ -119,11 +120,13 @@ export default function SettingsPage() {
   })
   const [testing, setTesting] = useState<number | null>(null)
   const [testResult, setTestResult] = useState<Record<number, { ok: boolean; error?: string }>>({})
+  const [systemForm, setSystemForm] = useState<Record<string, string>>({})
   const [sttForm, setSttForm] = useState<Record<string, string>>({})
   const [translateForm, setTranslateForm] = useState<Record<string, string>>({})
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('smb')
 
   const sectionRefs = {
+    system: useRef<HTMLElement | null>(null),
     smb: useRef<HTMLElement | null>(null),
     stt: useRef<HTMLElement | null>(null),
     translate: useRef<HTMLElement | null>(null),
@@ -131,6 +134,7 @@ export default function SettingsPage() {
 
   const sections = useMemo(
     () => [
+      { id: 'system', label: t('settings.systemTitle'), description: t('settings.systemDesc') },
       { id: 'smb', label: t('settings.smbServers'), description: t('settings.smbDesc') },
       { id: 'stt', label: t('settings.sttTitle'), description: t('settings.sttDesc') },
       { id: 'translate', label: t('settings.transTitle'), description: t('settings.translateDesc') },
@@ -201,6 +205,16 @@ export default function SettingsPage() {
       await smbApi.delete(id)
       qc.invalidateQueries({ queryKey: ['smb-servers'] })
       show(t('settings.serverDeleted'), 'success')
+    } catch (e: unknown) {
+      show(e instanceof Error ? e.message : t('common.error'), 'error')
+    }
+  }
+
+  const handleSaveSystem = async () => {
+    try {
+      await settingsApi.patchSystem(systemForm)
+      qc.invalidateQueries({ queryKey: ['settings-system'] })
+      show(t('settings.systemSaved'), 'success')
     } catch (e: unknown) {
       show(e instanceof Error ? e.message : t('common.error'), 'error')
     }
@@ -299,6 +313,25 @@ export default function SettingsPage() {
         />
 
         <div className="flex flex-col gap-6">
+          <section ref={sectionRefs.system} className="scroll-mt-[122px]">
+            <SectionCard
+              eyebrow="System"
+              title={t('settings.systemTitle')}
+              description={t('settings.systemDesc')}
+              actions={<Button variant="secondary" onClick={handleSaveSystem}>{t('settings.commitSystem')}</Button>}
+            >
+              <div className="flex flex-col gap-4">
+                <FormField
+                  id="worker_concurrency"
+                  label={t('settings.workerConcurrency')}
+                  type="number"
+                  value={systemForm['worker_concurrency'] ?? systemData?.['worker_concurrency'] ?? '2'}
+                  onChange={(value) => setSystemForm((current) => ({ ...current, worker_concurrency: value }))}
+                />
+              </div>
+            </SectionCard>
+          </section>
+
           <section ref={sectionRefs.smb} className="scroll-mt-[122px]">
             <SectionCard
               eyebrow="Storage"

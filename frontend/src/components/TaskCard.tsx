@@ -57,9 +57,9 @@ export default function TaskCard({ task }: { task: Task }) {
   return (
     <>
       <article className="section-card group relative p-5 transition-colors duration-150 ease-linear hover:bg-surface-container-low">
-        <span className="absolute left-2 top-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+        {/*<span className="absolute left-2 top-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
           #{task.id}
-        </span>
+        </span>*/}
         <div className="flex items-start justify-between gap-4 mt-1">
           <div className="flex-1 min-w-0">
             <p className="truncate text-[1.125rem] font-bold leading-[1.5] tracking-[-0.03em] text-on-surface" title={task.file_path}>

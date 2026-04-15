@@ -3,6 +3,10 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
+class SystemSettingsUpdate(BaseModel):
+    worker_concurrency: str | None = None
+
+
 class STTSettingsUpdate(BaseModel):
     whisper_local_model_size: str | None = None
     openai_whisper_api_key: str | None = None
