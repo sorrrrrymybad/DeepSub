@@ -134,7 +134,10 @@ const resources = {
         folders: "Folders and Files",
         unsupported: "Non-video files are shown for reference only.",
         empty: "No matching media files in this folder.",
-        failed: "Unable to load this folder."
+        failed: "Unable to load this folder.",
+        selectAll: "Select All",
+        deselectAll: "Deselect All",
+        sortName: "File Name"
       },
       lang: {
         auto: "Auto Detect",
@@ -286,7 +289,10 @@ const resources = {
         folders: "目录与文件",
         unsupported: "非视频文件仅作参考展示。",
         empty: "当前目录下没有可处理的视频文件。",
-        failed: "当前目录加载失败。"
+        failed: "当前目录加载失败。",
+        selectAll: "全选",
+        deselectAll: "取消全选",
+        sortName: "文件名"
       },
       lang: {
         auto: "自动检测",

@@ -5,16 +5,21 @@ import { useTranslation } from 'react-i18next'
 
 const VIDEO_EXTS = ['.mkv', '.mp4', '.avi', '.ts', '.mov']
 
+type SortOrder = 'asc' | 'desc'
+
 interface Props {
   serverId: number
   selected: string[]
   onToggle: (path: string) => void
+  onSelectAll?: (paths: string[]) => void
+  onDeselectAll?: (paths: string[]) => void
 }
 
-export default function SMBFileBrowser({ serverId, selected, onToggle }: Props) {
+export default function SMBFileBrowser({ serverId, selected, onToggle, onSelectAll, onDeselectAll }: Props) {
   const { t } = useTranslation()
   const [path, setPath] = useState('/')
   const [history, setHistory] = useState<string[]>([])
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['smb-browse', serverId, path],
@@ -36,8 +41,25 @@ export default function SMBFileBrowser({ serverId, selected, onToggle }: Props) 
   const isVideo = (name: string) => VIDEO_EXTS.some(ext => name.toLowerCase().endsWith(ext))
 
   const getFullPath = (name: string) => `${path.endsWith('/') ? path : path + '/'}${name}`
-  const visibleItems = data ?? []
-  const videoCount = visibleItems.filter((entry) => !entry.is_dir && isVideo(entry.name)).length
+
+  const rawItems = data ?? []
+  const videos = rawItems.filter(e => !e.is_dir && isVideo(e.name))
+
+  const visibleItems = [...rawItems].sort((a, b) =>
+    sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+  )
+  const videoCount = videos.length
+
+  const videoPaths = videos.map(e => getFullPath(e.name))
+  const allSelected = videoCount > 0 && videoPaths.every(p => selected.includes(p))
+
+  const handleSelectAll = () => {
+    if (allSelected) {
+      onDeselectAll?.(videoPaths)
+    } else {
+      onSelectAll?.(videoPaths)
+    }
+  }
 
   return (
     <div className="overflow-hidden rounded-[22px] border border-outline-variant bg-surface-container-lowest">
@@ -64,8 +86,35 @@ export default function SMBFileBrowser({ serverId, selected, onToggle }: Props) 
         </span>
       </div>
 
-      <div className="border-b border-outline-variant px-4 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
-        {t('browser.folders')}
+      <div className="flex items-center gap-2 border-b border-outline-variant px-4 py-3">
+        <span className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant flex-1">
+          {t('browser.folders')}
+        </span>
+
+        <button
+          type="button"
+          onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+          className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
+        >
+          {sortOrder === 'asc' ? '↑' : '↓'} {t('browser.sortName')}
+        </button>
+
+        {videoCount > 0 && (
+          <button
+            type="button"
+            onClick={handleSelectAll}
+            className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
+          >
+            <input
+              type="checkbox"
+              readOnly
+              checked={allSelected}
+              className="pointer-events-none h-3 w-3 rounded border-outline-variant bg-surface custom-checkbox"
+            />
+            {allSelected ? t('browser.deselectAll') : t('browser.selectAll')}
+          </button>
+        )}
+
       </div>
 
       <div className="max-h-[420px] overflow-auto">

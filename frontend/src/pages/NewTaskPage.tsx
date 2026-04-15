@@ -53,6 +53,14 @@ export default function NewTaskPage() {
     setSelectedFiles(prev => prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path])
   }
 
+  const selectAll = (paths: string[]) => {
+    setSelectedFiles(prev => [...prev, ...paths.filter(p => !prev.includes(p))])
+  }
+
+  const deselectAll = (paths: string[]) => {
+    setSelectedFiles(prev => prev.filter(p => !paths.includes(p)))
+  }
+
   const handleSubmit = async () => {
     if (!serverId || selectedFiles.length === 0) {
       show(t('newTask.errNoFiles'), 'warning')
@@ -155,7 +163,7 @@ export default function NewTaskPage() {
             </div>
 
             {serverId ? (
-              <SMBFileBrowser serverId={serverId} selected={selectedFiles} onToggle={toggleFile} />
+              <SMBFileBrowser serverId={serverId} selected={selectedFiles} onToggle={toggleFile} onSelectAll={selectAll} onDeselectAll={deselectAll} />
             ) : ""}
           </div>
         </SectionCard>
