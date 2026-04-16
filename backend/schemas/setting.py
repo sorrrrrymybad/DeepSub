@@ -9,6 +9,7 @@ class SystemSettingsUpdate(BaseModel):
 
 class STTSettingsUpdate(BaseModel):
     whisper_local_model_size: str | None = None
+    whisper_local_compute_type: str | None = None
     openai_whisper_api_key: str | None = None
 
 

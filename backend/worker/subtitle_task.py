@@ -113,6 +113,7 @@ def _build_stt_engine(engine_name: str, db):
         return WhisperLocalEngine(
             model_size=get_setting("stt.whisper_local.model_size") or "base",
             model_dir=str(settings.whisper_model_dir),
+            compute_type=get_setting("stt.whisper_local.compute_type") or "float32",
         )
     if engine_name == "openai_whisper":
         return OpenAIWhisperEngine(api_key=get_setting("stt.openai_whisper.api_key"))

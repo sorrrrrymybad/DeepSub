@@ -123,6 +123,44 @@ export default function SettingsPage() {
   const [systemForm, setSystemForm] = useState<Record<string, string>>({})
   const [sttForm, setSttForm] = useState<Record<string, string>>({})
   const [translateForm, setTranslateForm] = useState<Record<string, string>>({})
+
+  // 取当前 model_size：优先用用户正在编辑的值，fallback 到已保存值
+  const currentModelSize = sttForm['whisper_local_model_size'] ?? sttData?.['whisper_local_model_size'] ?? 'base'
+
+  const { data: whisperStatus, refetch: refetchWhisperStatus } = useQuery({
+    queryKey: ['whisper-status', currentModelSize],
+    queryFn: () => settingsApi.getWhisperStatus(currentModelSize),
+    // TanStack Query v5: refetchInterval 函数接收 Query 对象
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (data?.downloading) return 1000  // 下载中每秒轮询
+      return false                         // 其他状态停止轮询
+    },
+    enabled: !!currentModelSize,
+  })
+
+  const [isSubmittingDownload, setIsSubmittingDownload] = useState(false)
+
+  const handleWhisperDownload = async () => {
+    if (isSubmittingDownload || whisperStatus?.downloading) return
+    setIsSubmittingDownload(true)
+    try {
+      const result = await settingsApi.postWhisperDownload(currentModelSize)
+      if (result.reason === 'already_exists') {
+        show(t('settings.whisper.alreadyExists'), 'success')
+      } else if (result.ok) {
+        show(t('settings.whisper.downloadStarted'), 'success')
+      } else if (result.error) {
+        show(t('settings.whisper.downloadError', { msg: result.error }), 'error')
+      }
+    } catch (e: unknown) {
+      show(e instanceof Error ? e.message : t('common.error'), 'error')
+    } finally {
+      setIsSubmittingDownload(false)
+      // POST 返回后立即刷新状态，触发轮询（若 downloading=true 则自动开始）
+      void refetchWhisperStatus()
+    }
+  }
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('smb')
 
   const sectionRefs = {
@@ -249,11 +287,6 @@ export default function SettingsPage() {
     { key: 'port', label: t('settings.port'), type: 'number' as const },
   ]
 
-  const sttFields: ConfigField[] = [
-    { key: 'whisper_local_model_size', label: t('settings.fields.whisperLocal') },
-    { key: 'openai_whisper_api_key', label: t('settings.fields.openaiWhisper'), secret: true },
-  ]
-
   const translateGroups: Array<{ label: string; fields: ConfigField[] }> = [
     {
       label: t('settings.groups.general'),
@@ -320,7 +353,7 @@ export default function SettingsPage() {
               description={t('settings.systemDesc')}
               actions={<Button variant="secondary" onClick={handleSaveSystem}>{t('settings.commitSystem')}</Button>}
             >
-              <div className="flex flex-col gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   id="worker_concurrency"
                   label={t('settings.workerConcurrency')}
@@ -429,11 +462,116 @@ export default function SettingsPage() {
               description={t('settings.sttDesc')}
               actions={<Button variant="secondary" onClick={handleSaveSTT}>{t('settings.commitStt')}</Button>}
             >
-              <ConfigFieldsSection
-                fields={sttFields}
-                values={{ ...(sttData ?? {}), ...sttForm } as Record<string, string>}
-                onChange={(key, value) => setSttForm((current) => ({ ...current, [key]: value }))}
-              />
+              <div className="flex flex-col gap-6">
+                {/* 本地 Whisper 分组 */}
+                <div>
+                  <p className="mb-3 text-[0.9rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant underline">
+                    {t('settings.groups.whisperLocal')}
+                  </p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {/* 模型类别 */}
+                    <div>
+                      <label
+                        htmlFor="whisper_local_model_size"
+                        className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant"
+                      >
+                        {t('settings.fields.whisperLocalModelSize')}
+                      </label>
+                      <select
+                        id="whisper_local_model_size"
+                        value={sttForm['whisper_local_model_size'] ?? sttData?.['whisper_local_model_size'] ?? 'base'}
+                        onChange={(e) => setSttForm((current) => ({ ...current, whisper_local_model_size: e.target.value }))}
+                        className="w-full rounded-2xl px-4 py-3 text-sm"
+                      >
+                        <option value="tiny">tiny</option>
+                        <option value="base">base</option>
+                        <option value="small">small</option>
+                        <option value="medium">medium</option>
+                        <option value="large-v3">large-v1</option>
+                        <option value="large-v3">large-v2</option>
+                        <option value="large-v3">large-v3</option>
+                      </select>
+                    </div>
+                    {/* compute_type */}
+                    <div>
+                      <label
+                        htmlFor="whisper_local_compute_type"
+                        className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant"
+                      >
+                        {t('settings.fields.whisperLocalComputeType')}
+                      </label>
+                      <select
+                        id="whisper_local_compute_type"
+                        value={sttForm['whisper_local_compute_type'] ?? sttData?.['whisper_local_compute_type'] ?? 'float32'}
+                        onChange={(e) => setSttForm((current) => ({ ...current, whisper_local_compute_type: e.target.value }))}
+                        className="w-full rounded-2xl px-4 py-3 text-sm"
+                      >
+                        <option value="int8">int8 (fastest, CPU recommended)</option>
+                        <option value="float32">float32 (default)</option>
+                        <option value="float16">float16 (GPU only)</option>
+                        <option value="int8_float32">int8_float32 (CPU or GPU)</option>
+                        <option value="int8_float16">int8_float16 (GPU only)</option>
+                      </select>
+                    </div>
+                    {/* 下载状态 + 按钮，跨两列 */}
+                    <div className="md:col-span-2 flex items-center gap-2">
+                      {/* 状态 badge */}
+                      {(() => {
+                        if (!whisperStatus) return (
+                          <span className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold bg-surface-container text-on-surface-variant">
+                            {t('settings.whisper.statusChecking')}
+                          </span>
+                        )
+                        if (whisperStatus.downloading) return (
+                          <span className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold bg-primary/10 text-primary">
+                            {t('settings.whisper.statusDownloading', { progress: whisperStatus.progress ?? 0 })}
+                          </span>
+                        )
+                        if (whisperStatus.exists) return (
+                          <span className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold bg-[var(--color-success,#22c55e)]/10 text-[var(--color-success,#22c55e)]">
+                            {t('settings.whisper.statusExists')}
+                          </span>
+                        )
+                        if (whisperStatus.error) return (
+                          <span className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold bg-error-container text-on-error-container">
+                            {t('settings.whisper.statusError')}
+                          </span>
+                        )
+                        return (
+                          <span className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold bg-surface-container text-on-surface-variant">
+                            {t('settings.whisper.statusMissing')}
+                          </span>
+                        )
+                      })()}
+                      <button
+                        type="button"
+                        onClick={() => void handleWhisperDownload()}
+                        disabled={isSubmittingDownload || whisperStatus?.downloading || whisperStatus?.exists}
+                        className="shrink-0 inline-flex items-center justify-center rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs font-semibold text-on-surface-variant transition-colors hover:border-primary hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {(isSubmittingDownload || whisperStatus?.downloading)
+                          ? t('settings.whisper.btnDownloading')
+                          : t('settings.whisper.btnDownload')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {/* OpenAI Whisper 分组 */}
+                <div>
+                  <p className="mb-3 text-[0.9rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant underline">
+                    {t('settings.groups.openaiWhisper')}
+                  </p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      id="openai_whisper_api_key"
+                      label={t('settings.fields.openaiWhisper')}
+                      type="password"
+                      value={sttForm['openai_whisper_api_key'] ?? sttData?.['openai_whisper_api_key'] ?? ''}
+                      onChange={(value) => setSttForm((current) => ({ ...current, openai_whisper_api_key: value }))}
+                    />
+                  </div>
+                </div>
+              </div>
             </SectionCard>
           </section>
 

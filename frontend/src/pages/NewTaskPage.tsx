@@ -139,27 +139,20 @@ export default function NewTaskPage() {
               >
                 {t('newTask.smbServer')}
               </label>
-              <div className="relative">
-                <select
-                  id="new-task-server"
-                  aria-label={t('newTask.smbServer')}
-                  value={serverId ?? ''}
-                  onChange={e => {
-                    const nextValue = e.target.value
-                    setServerId(nextValue ? Number(nextValue) : null)
-                    setSelectedFiles([])
-                  }}
-                  className="w-full appearance-none rounded-2xl px-4 py-3 pr-11 text-sm"
-                >
-                  <option value="">{t('newTask.selectServer')}</option>
-                  {servers?.map(s => <option key={s.id} value={s.id}>{s.name} ({s.host})</option>)}
-                </select>
-                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-on-surface-variant">
-                  <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <path d="m5 7.5 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-              </div>
+              <select
+                id="new-task-server"
+                aria-label={t('newTask.smbServer')}
+                value={serverId ?? ''}
+                onChange={e => {
+                  const nextValue = e.target.value
+                  setServerId(nextValue ? Number(nextValue) : null)
+                  setSelectedFiles([])
+                }}
+                className="w-full rounded-2xl px-4 py-3 text-sm"
+              >
+                <option value="">{t('newTask.selectServer')}</option>
+                {servers?.map(s => <option key={s.id} value={s.id}>{s.name} ({s.host})</option>)}
+              </select>
             </div>
 
             {serverId ? (

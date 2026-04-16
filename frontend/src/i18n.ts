@@ -104,11 +104,14 @@ const resources = {
         sttSaved: "ASR Engine Config Saved",
         transSaved: "Translation Engine Config Saved",
         groups: {
-          general: "General"
+          general: "General",
+          whisperLocal: "Local Whisper",
+          openaiWhisper: "OpenAI Whisper",
         },
         fields: {
-          whisperLocal: "Whisper Local Model (tiny/base/small/medium/large)",
-          openaiWhisper: "OpenAI Whisper API Key",
+          whisperLocalModelSize: "Model",
+          whisperLocalComputeType: "Compute Type",
+          openaiWhisper: "API Key",
           deeplxEndpoint: "API URLs (one per line)",
           deeplxEndpointPlaceholder: "Supports multiple address loop calls; please input one address per line.",
           deeplKey: "API Key",
@@ -120,6 +123,18 @@ const resources = {
           claudeModel: "Model",
           claudeBase: "Base URL (Optional)",
           batchSize: "Sentences per API Call (batch size)",
+        },
+        whisper: {
+          statusChecking: "Checking...",
+          statusExists: "Downloaded",
+          statusMissing: "Not downloaded",
+          statusDownloading: "Downloading {{progress}}%",
+          statusError: "Error",
+          btnDownload: "Download",
+          btnDownloading: "Downloading...",
+          alreadyExists: "Model already downloaded",
+          downloadStarted: "Download started",
+          downloadError: "Download failed: {{msg}}",
         },
       },
       drawer: {
@@ -259,11 +274,14 @@ const resources = {
         sttSaved: "ASR 引擎配置已保存",
         transSaved: "翻译引擎配置已保存",
         groups: {
-          general: "通用"
+          general: "通用",
+          whisperLocal: "本地 Whisper",
+          openaiWhisper: "OpenAI Whisper",
         },
         fields: {
-          whisperLocal: "本地 Whisper 模型 (tiny/base/small/medium/large)",
-          openaiWhisper: "OpenAI Whisper API Key",
+          whisperLocalModelSize: "模型",
+          whisperLocalComputeType: "计算精度",
+          openaiWhisper: "API Key",
           deeplxEndpoint: "API URL",
           deeplxEndpointPlaceholder: "支持多个地址循环调用，请每行一个输入",
           deeplKey: "API Key",
@@ -275,6 +293,18 @@ const resources = {
           claudeModel: "翻译模型",
           claudeBase: "Base URL (可选)",
           batchSize: "每次 API 调用合并句数",
+        },
+        whisper: {
+          statusChecking: "检测中...",
+          statusExists: "已下载",
+          statusMissing: "未下载",
+          statusDownloading: "下载中 {{progress}}%",
+          statusError: "出错",
+          btnDownload: "下载模型",
+          btnDownloading: "下载中...",
+          alreadyExists: "模型已存在",
+          downloadStarted: "已开始下载",
+          downloadError: "下载失败：{{msg}}",
         },
       },
       drawer: {

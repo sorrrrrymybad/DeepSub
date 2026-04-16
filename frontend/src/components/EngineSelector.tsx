@@ -7,14 +7,6 @@ interface Props {
   options: { value: string; label: string }[]
 }
 
-function ChevronIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="m5 7.5 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
 export default function EngineSelector({
   id,
   label,
@@ -35,19 +27,14 @@ export default function EngineSelector({
         {description ? <p className="text-sm leading-6 text-on-surface-variant">{description}</p> : null}
       </div>
 
-      <div className="relative">
-        <select
-          id={id}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className="w-full appearance-none rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 py-3 pr-11 text-sm text-on-surface"
-        >
-          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-on-surface-variant">
-          <ChevronIcon />
-        </span>
-      </div>
+      <select
+        id={id}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full rounded-2xl px-4 py-3 text-sm"
+      >
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
     </div>
   )
 }
