@@ -38,11 +38,11 @@ class OpenAITranslateEngine(TranslateEngine):
             ],
             "temperature": 0.3,
         }
-        logger.info("[OpenAI] base_url=%s model=%s", self.client.base_url, self.model)
-        logger.info("[OpenAI] request payload: %s", request_payload)
+        # logger.info("[OpenAI] base_url=%s model=%s", self.client.base_url, self.model)
+        # logger.info("[OpenAI] request payload: %s", request_payload)
         try:
             response = self.client.chat.completions.create(**request_payload)
-            logger.info("[OpenAI] response: %s", response)
+            # logger.info("[OpenAI] response: %s", response)
             return response.choices[0].message.content.strip()
         except Exception as e:
             logger.error("[OpenAI] error: %s", e)

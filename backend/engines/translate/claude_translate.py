@@ -39,11 +39,11 @@ class ClaudeTranslateEngine(TranslateEngine):
             "system": system_prompt,
             "messages": [{"role": "user", "content": text}],
         }
-        logger.info("[Claude] base_url=%s model=%s", getattr(self.client, 'base_url', None), self.model)
-        logger.info("[Claude] request payload: %s", request_payload)
+        # logger.info("[Claude] base_url=%s model=%s", getattr(self.client, 'base_url', None), self.model)
+        # logger.info("[Claude] request payload: %s", request_payload)
         try:
             message = self.client.messages.create(**request_payload)
-            logger.info("[Claude] response: %s", message)
+            # logger.info("[Claude] response: %s", message)
             return message.content[0].text.strip()
         except Exception as e:
             logger.error("[Claude] error: %s", e)
