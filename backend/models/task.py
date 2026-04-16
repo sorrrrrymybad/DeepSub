@@ -1,9 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import Boolean, DateTime, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base
+
+_CST = timezone(timedelta(hours=8))
+
+
+def _now_cst() -> datetime:
+    return datetime.now(_CST).replace(tzinfo=None)
 
 
 class Task(Base):
@@ -24,9 +30,9 @@ class Task(Base):
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now_cst)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
+        default=_now_cst,
+        onupdate=_now_cst,
     )

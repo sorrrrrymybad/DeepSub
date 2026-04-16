@@ -74,7 +74,7 @@ def run_scheduled_job(job_id: int):
 
         db.query(ScheduledJob).filter(ScheduledJob.id == job_id).update(
             {
-                "last_run_at": datetime.now(timezone.utc),
+                "last_run_at": datetime.now(timezone(timedelta(hours=8))).replace(tzinfo=None),
                 "last_run_status": f"created {created} tasks",
             }
         )
@@ -83,7 +83,7 @@ def run_scheduled_job(job_id: int):
         logger.exception("Scheduled job %s failed: %s", job_id, exc)
         db.query(ScheduledJob).filter(ScheduledJob.id == job_id).update(
             {
-                "last_run_at": datetime.now(timezone.utc),
+                "last_run_at": datetime.now(timezone(timedelta(hours=8))).replace(tzinfo=None),
                 "last_run_status": f"error: {str(exc)[:200]}",
             }
         )
@@ -97,7 +97,7 @@ def poll_scheduled_jobs():
     db = SessionLocal()
     try:
         jobs = db.query(ScheduledJob).filter(ScheduledJob.enabled.is_(True)).all()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone(timedelta(hours=8))).replace(tzinfo=None)
         for job in jobs:
             cron = croniter(job.cron_expr, job.last_run_at or (now - timedelta(minutes=2)))
             next_run = cron.get_next(datetime)

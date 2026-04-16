@@ -16,9 +16,9 @@ const ToastContext = createContext<ToastContextType>({ show: () => {} })
 
 const TYPE_STYLES: Record<ToastType, string> = {
   info: 'border-primary bg-primary-container text-on-primary-container',
-  success: 'border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300',
-  error: 'border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300',
-  warning: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
+  success: 'border-green-500/40 bg-green-500/40 text-on-primary-container',
+  error: 'border-red-500/40 bg-red-500/40 text-on-primary-container',
+  warning: 'border-yellow-500/40 bg-yellow-500/40 text-on-primary-container',
 }
 
 let nextId = 0

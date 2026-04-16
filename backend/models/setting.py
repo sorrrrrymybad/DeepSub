@@ -1,9 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base
+
+_CST = timezone(timedelta(hours=8))
+
+
+def _now_cst() -> datetime:
+    return datetime.now(_CST).replace(tzinfo=None)
 
 
 class Setting(Base):
@@ -13,6 +19,6 @@ class Setting(Base):
     value: Mapped[str] = mapped_column(String, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
+        default=_now_cst,
+        onupdate=_now_cst,
     )

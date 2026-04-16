@@ -55,13 +55,16 @@ export default function TaskCard({ task }: { task: Task }) {
         {/*<span className="absolute left-2 top-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
           #{task.id}
         </span>*/}
-        <div className="flex items-start justify-between gap-4 mt-1">
+        <div className="flex items-start justify-between gap-5 mt-1">
           <div className="flex-1 min-w-0">
             <p className="truncate text-[1.125rem] font-bold leading-[1.5] tracking-[-0.03em] text-on-surface" title={task.file_path}>
               {filename}
             </p>
             <p className="truncate text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
               {task.file_path}
+            </p>
+            <p className="mt-1 text-[0.72rem] tracking-[0.04em] mt-2 text-on-surface-variant">
+              {new Date(task.updated_at).toLocaleString()}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
@@ -95,13 +98,7 @@ export default function TaskCard({ task }: { task: Task }) {
           </p>
         )}
 
-        <div className="mt-4 flex gap-3 text-[0.72rem] font-semibold uppercase tracking-[0.14em]">
-          <button
-            onClick={() => setShowLog(true)}
-            className="rounded-full border border-outline-variant px-3 py-2 text-primary transition-colors hover:border-primary hover:text-primary-dim"
-          >
-            {t('common.log')}
-          </button>
+        <div className="mt-2 flex items-center gap-3 text-[0.72rem] font-semibold uppercase tracking-[0.14em]">
           {task.status === 'failed' && task.retry_count < 5 && (
             <button
               onClick={handleRetry}
@@ -110,12 +107,20 @@ export default function TaskCard({ task }: { task: Task }) {
               {t('common.retry')}
             </button>
           )}
-          <button
-            onClick={handleRemove}
-            className="ml-auto rounded-full border border-outline-variant px-3 py-2 text-on-surface-variant transition-colors hover:border-error hover:text-error"
-          >
-            {t('common.delete')}
-          </button>
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={() => setShowLog(true)}
+              className="rounded-full border border-outline-variant px-3 py-2 text-primary transition-colors hover:border-primary hover:text-primary-dim"
+            >
+              {t('common.log')}
+            </button>
+            <button
+              onClick={handleRemove}
+              className="rounded-full border border-outline-variant px-3 py-2 text-on-surface-variant transition-colors hover:border-error hover:text-error"
+            >
+              {t('common.delete')}
+            </button>
+          </div>
         </div>
       </article>
       {showLog && <TaskLogDrawer taskId={task.id} onClose={() => setShowLog(false)} />}

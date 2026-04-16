@@ -5,7 +5,7 @@ import logging
 import os
 import shutil
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import pysrt
@@ -140,7 +140,7 @@ def process_subtitle_task(self, task_id: int):
             db,
             task_id,
             status="running",
-            started_at=datetime.now(timezone.utc).replace(tzinfo=None),
+            started_at=datetime.now(timezone(timedelta(hours=8))).replace(tzinfo=None),
             celery_task_id=self.request.id,
             progress=5,
         )
@@ -241,7 +241,7 @@ def process_subtitle_task(self, task_id: int):
             task_id,
             status="done",
             progress=100,
-            finished_at=datetime.now(timezone.utc).replace(tzinfo=None),
+            finished_at=datetime.now(timezone(timedelta(hours=8))).replace(tzinfo=None),
         )
         task_logger.info("Task completed successfully.")
     except Exception as exc:
@@ -251,7 +251,7 @@ def process_subtitle_task(self, task_id: int):
             task_id,
             status="failed",
             error_message=str(exc)[:500],
-            finished_at=datetime.now(timezone.utc).replace(tzinfo=None),
+            finished_at=datetime.now(timezone(timedelta(hours=8))).replace(tzinfo=None),
         )
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
