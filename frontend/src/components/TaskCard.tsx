@@ -37,11 +37,6 @@ export default function TaskCard({ task }: { task: Task }) {
       ? formatSeconds(task.elapsed_seconds)
       : null
 
-  const handleCancel = async () => {
-    await tasksApi.cancel(task.id)
-    qc.invalidateQueries({ queryKey: ['tasks'] })
-  }
-
   const handleRetry = async () => {
     await tasksApi.retry(task.id)
     qc.invalidateQueries({ queryKey: ['tasks'] })
@@ -107,14 +102,6 @@ export default function TaskCard({ task }: { task: Task }) {
           >
             {t('common.log')}
           </button>
-          {task.status === 'running' && (
-            <button
-              onClick={handleCancel}
-              className="rounded-full border border-outline-variant px-3 py-2 text-on-surface-variant transition-colors hover:border-primary hover:text-on-surface"
-            >
-              {t('common.cancel')}
-            </button>
-          )}
           {task.status === 'failed' && task.retry_count < 5 && (
             <button
               onClick={handleRetry}

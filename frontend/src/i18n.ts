@@ -11,7 +11,6 @@ const resources = {
         Settings: "Settings"
       },
       common: {
-        cancel: "Cancel",
         retry: "Retry",
         log: "Log",
         close: "Close",
@@ -35,7 +34,6 @@ const resources = {
       },
       tasks: {
         title: "Tasks",
-        cancelAll: "Cancel All Running",
         loading: "Loading matrix...",
         noData: "No data present",
         emptyDescription:"Please create a task to display."
@@ -184,7 +182,6 @@ const resources = {
         Settings: "系统设置"
       },
       common: {
-        cancel: "取消",
         retry: "重试",
         log: "日志",
         close: "关闭",
@@ -208,7 +205,6 @@ const resources = {
       },
       tasks: {
         title: "任务中心",
-        cancelAll: "中断所有任务",
         loading: "加载矩阵中...",
         noData: "暂无数据",
         emptyDescription:"请创建一个任务以显示"

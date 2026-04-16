@@ -79,30 +79,6 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
     return task
 
 
-@router.delete("/{task_id}", status_code=204)
-def cancel_task(task_id: int, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id).first()
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    if task.celery_task_id:
-        try:
-            from celery.result import AsyncResult
-
-            AsyncResult(task.celery_task_id).revoke(terminate=True)
-        except Exception:
-            pass
-    try:
-        import redis as sync_redis
-        from core.config import settings as app_settings
-
-        sync_redis.from_url(app_settings.redis_url).set(f"cancel:{task_id}", "1", ex=3600)
-    except Exception:
-        pass
-    task.status = "cancelled"
-    db.commit()
-
-
 @router.delete("/{task_id}/remove", status_code=204)
 def remove_task(task_id: int, db: Session = Depends(get_db)):
     import os

@@ -57,8 +57,6 @@ export const tasksApi = {
   create: (payload: CreateTasksPayload) =>
     client.post<Task[]>('/tasks', payload).then(r => r.data),
 
-  cancel: (id: number) => client.delete(`/tasks/${id}`),
-
   remove: (id: number) => client.delete(`/tasks/${id}/remove`),
 
   retry: (id: number) => client.post<Task>(`/tasks/${id}/retry`).then(r => r.data),

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { tasksApi, type TaskSummary } from '../api/tasks'
 import TaskCard from '../components/TaskCard'
 import { Button } from '../components/atoms/Button'
@@ -9,14 +9,10 @@ import StatCard from '../components/page/StatCard'
 import SectionCard from '../components/page/SectionCard'
 import FilterTabs from '../components/page/FilterTabs'
 import EmptyState from '../components/page/EmptyState'
-import { useToast } from '../context/ToastContext'
-
 export default function TasksPage() {
   const { t } = useTranslation()
-  const { show } = useToast()
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
-  const qc = useQueryClient()
 
   const STATUS_FILTERS = [
     { label: t('status.all'), value: '' },
@@ -42,16 +38,6 @@ export default function TasksPage() {
   })
 
   const items = data?.items ?? []
-
-  const handleBatchCancel = async () => {
-    const running = data?.items.filter(t => t.status === 'running') ?? []
-    try {
-      await Promise.all(running.map(ta => tasksApi.cancel(ta.id)))
-      qc.invalidateQueries({ queryKey: ['tasks'] })
-    } catch (e: unknown) {
-      show(e instanceof Error ? e.message : t('common.error'), 'error')
-    }
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -82,18 +68,7 @@ export default function TasksPage() {
         />
       </div>
 
-      <SectionCard
-        // eyebrow="Queue Browser"
-        // title={t('tasks.queueTitle', { defaultValue: 'Execution Queue' })}
-        // description={t('tasks.queueDescription', {
-        //   defaultValue: 'Filter the current queue, inspect progress, and act on failed or running jobs.',
-        // })}
-        // actions={
-        //   <Button variant="secondary" onClick={handleBatchCancel} disabled={runningCount === 0}>
-        //     {t('tasks.cancelAll')}
-        //   </Button>
-        // }
-      >
+      <SectionCard>
         <div className="flex flex-col gap-5">
           <div className="flex items-center justify-between gap-4">
             <FilterTabs
@@ -104,9 +79,6 @@ export default function TasksPage() {
                 setPage(1)
               }}
             />
-            <Button variant="secondary" onClick={handleBatchCancel} disabled={!summary?.running}>
-              {t('tasks.cancelAll')}
-            </Button>
           </div>
 
           {isLoading ? (
