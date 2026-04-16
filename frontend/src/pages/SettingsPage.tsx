@@ -292,6 +292,12 @@ export default function SettingsPage() {
       label: t('settings.groups.general'),
       fields: [
         { key: 'batch_size', label: t('settings.fields.batchSize') },
+        {
+          key: 'translate_prompt',
+          label: t('settings.fields.translatePrompt'),
+          textarea: true,
+          placeholder: t('settings.fields.translatePromptPlaceholder'),
+        },
       ],
     },
     {

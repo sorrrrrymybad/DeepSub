@@ -24,3 +24,4 @@ class TranslateSettingsUpdate(BaseModel):
     claude_model: str | None = None
     claude_base_url: str | None = None
     batch_size: str | None = None
+    translate_prompt: str | None = None

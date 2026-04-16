@@ -79,6 +79,7 @@ def get_translate_settings(db: Session = Depends(get_db)):
         ("claude_model", "translate.claude.model"),
         ("claude_base_url", "translate.claude.base_url"),
         ("batch_size", "translate.batch_size"),
+        ("translate_prompt", "translate.prompt"),
     ]
     return {field: _get_val(db, key) for field, key in keys}
 
@@ -98,6 +99,7 @@ def update_translate_settings(
         "claude_model": "translate.claude.model",
         "claude_base_url": "translate.claude.base_url",
         "batch_size": "translate.batch_size",
+        "translate_prompt": "translate.prompt",
     }
     for field, key in mapping.items():
         value = getattr(data, field)

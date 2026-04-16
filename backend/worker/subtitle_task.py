@@ -85,11 +85,20 @@ def _build_translate_engine(engine_name: str, db):
         return DeepLEngine(api_key=get_setting("translate.deepl.api_key"))
     if engine_name == "google":
         return GoogleTranslateEngine(api_key=get_setting("translate.google.api_key"))
-    if engine_name in {"openai", "claude"}:
+    if engine_name == "openai":
         return OpenAITranslateEngine(
-            api_key=get_setting(f"translate.{engine_name}.api_key"),
-            model=get_setting(f"translate.{engine_name}.model") or "gpt-4o-mini",
-            base_url=get_setting(f"translate.{engine_name}.base_url") or None,
+            api_key=get_setting("translate.openai.api_key"),
+            model=get_setting("translate.openai.model") or "gpt-4o-mini",
+            base_url=get_setting("translate.openai.base_url") or None,
+            prompt_template=get_setting("translate.prompt") or None,
+        )
+    if engine_name == "claude":
+        from engines.translate.claude_translate import ClaudeTranslateEngine
+        return ClaudeTranslateEngine(
+            api_key=get_setting("translate.claude.api_key"),
+            model=get_setting("translate.claude.model") or "claude-haiku-4-5-20251001",
+            base_url=get_setting("translate.claude.base_url") or None,
+            prompt_template=get_setting("translate.prompt") or None,
         )
     raise ValueError(f"Unknown translate engine: {engine_name}")
 

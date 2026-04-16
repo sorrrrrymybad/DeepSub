@@ -1,6 +1,6 @@
 import logging
 
-from openai import OpenAI
+import anthropic
 
 from engines.base import TranslateEngine
 
@@ -13,15 +13,18 @@ DEFAULT_TRANSLATE_PROMPT = (
 )
 
 
-class OpenAITranslateEngine(TranslateEngine):
+class ClaudeTranslateEngine(TranslateEngine):
     def __init__(
         self,
         api_key: str,
-        model: str = "gpt-4o-mini",
+        model: str = "claude-haiku-4-5-20251001",
         base_url: str | None = None,
         prompt_template: str | None = None,
     ):
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        client_kwargs = {"api_key": api_key}
+        if base_url:
+            client_kwargs["base_url"] = base_url
+        self.client = anthropic.Anthropic(**client_kwargs)
         self.model = model
         self.prompt_template = prompt_template or DEFAULT_TRANSLATE_PROMPT
 
@@ -32,18 +35,16 @@ class OpenAITranslateEngine(TranslateEngine):
         )
         request_payload = {
             "model": self.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text},
-            ],
-            "temperature": 0.3,
+            "max_tokens": 4096,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": text}],
         }
-        logger.info("[OpenAI] base_url=%s model=%s", self.client.base_url, self.model)
-        logger.info("[OpenAI] request payload: %s", request_payload)
+        logger.info("[Claude] base_url=%s model=%s", getattr(self.client, 'base_url', None), self.model)
+        logger.info("[Claude] request payload: %s", request_payload)
         try:
-            response = self.client.chat.completions.create(**request_payload)
-            logger.info("[OpenAI] response: %s", response)
-            return response.choices[0].message.content.strip()
+            message = self.client.messages.create(**request_payload)
+            logger.info("[Claude] response: %s", message)
+            return message.content[0].text.strip()
         except Exception as e:
-            logger.error("[OpenAI] error: %s", e)
+            logger.error("[Claude] error: %s", e)
             raise

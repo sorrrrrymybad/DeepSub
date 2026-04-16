@@ -123,6 +123,8 @@ const resources = {
           claudeModel: "Model",
           claudeBase: "Base URL (Optional)",
           batchSize: "Sentences per API Call (batch size)",
+          translatePrompt: "LLM Translate Prompt (OpenAI / Claude)",
+          translatePromptPlaceholder: "You are a professional subtitle translator. Translate from {source_lang} to {target_lang}. Output ONLY the translated text, no explanations.",
         },
         whisper: {
           statusChecking: "Checking...",
@@ -169,7 +171,8 @@ const resources = {
         deeplx: "DeepLX",
         deepl: "DeepL API",
         google: "Google Translate",
-        llm: "LLM (OpenAI/Claude)"
+        openai: "OpenAI",
+        claude: "Claude (Anthropic)"
       }
     }
   },
@@ -293,6 +296,8 @@ const resources = {
           claudeModel: "翻译模型",
           claudeBase: "Base URL (可选)",
           batchSize: "每次 API 调用合并句数",
+          translatePrompt: "LLM 翻译提示词（OpenAI / Claude）",
+          translatePromptPlaceholder: "You are a professional subtitle translator. Translate from {source_lang} to {target_lang}. Output ONLY the translated text, no explanations.",
         },
         whisper: {
           statusChecking: "检测中...",
@@ -339,7 +344,8 @@ const resources = {
         deeplx: "DeepLX",
         deepl: "DeepL 官方 API",
         google: "Google Translate",
-        llm: "大语言模型 (OpenAI/Claude)"
+        openai: "OpenAI",
+        claude: "Claude (Anthropic)"
       }
     }
   }

@@ -34,7 +34,8 @@ export default function NewTaskPage() {
     { value: 'deeplx', label: t('engines.deeplx') },
     { value: 'deepl', label: t('engines.deepl') },
     { value: 'google', label: t('engines.google') },
-    { value: 'openai', label: t('engines.llm') },
+    { value: 'openai', label: t('engines.openai') },
+    { value: 'claude', label: t('engines.claude') },
   ]
 
   const LANGUAGES = [

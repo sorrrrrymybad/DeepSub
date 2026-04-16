@@ -9,15 +9,17 @@ class GoogleTranslateEngine(TranslateEngine):
         self.url = "https://translation.googleapis.com/language/translate/v2"
 
     def translate(self, text: str, source_lang: str, target_lang: str) -> str:
+        body: dict = {
+            "q": text,
+            "target": target_lang.lower(),
+            "format": "text",
+        }
+        if source_lang and source_lang.lower() != "auto":
+            body["source"] = source_lang.lower()
         response = httpx.post(
             self.url,
             params={"key": self.api_key},
-            json={
-                "q": text,
-                "source": source_lang.lower(),
-                "target": target_lang.lower(),
-                "format": "text",
-            },
+            json=body,
             timeout=30,
         )
         response.raise_for_status()
