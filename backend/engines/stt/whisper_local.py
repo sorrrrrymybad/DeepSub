@@ -16,13 +16,16 @@ class WhisperLocalEngine(STTEngine):
 
             self._model = WhisperModel(self.model_size, download_root=self.model_dir, compute_type=self.compute_type)
 
-    def transcribe(self, audio_path: str, language: str | None = None) -> list[dict]:
+    def transcribe(self, audio_path: str, language: str | None = None, progress_callback=None) -> list[dict]:
         self._load_model()
-        segments, _ = self._model.transcribe(
+        segments, info = self._model.transcribe(
             audio_path,
             language=language if language != "auto" else None,
         )
-        return [
-            {"start": segment.start, "end": segment.end, "text": segment.text.strip()}
-            for segment in segments
-        ]
+        duration = info.duration or 0
+        result = []
+        for segment in segments:
+            result.append({"start": segment.start, "end": segment.end, "text": segment.text.strip()})
+            if progress_callback and duration > 0:
+                progress_callback(min(segment.end / duration, 1.0))
+        return result

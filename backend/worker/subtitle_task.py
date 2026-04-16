@@ -199,7 +199,12 @@ def process_subtitle_task(self, task_id: int):
             _update_task(db, task_id, progress=40)
             stt_engine = _build_stt_engine(task.stt_engine, db)
             language = task.source_lang if task.source_lang != "auto" else None
-            segments = stt_engine.transcribe(audio_path, language=language)
+
+            def stt_progress(ratio: float):
+                # STT 阶段占进度 40-60
+                _update_task(db, task_id, progress=int(40 + ratio * 20))
+
+            segments = stt_engine.transcribe(audio_path, language=language, progress_callback=stt_progress)
 
         task_logger.info("Got %s segments, starting translation...", len(segments))
         _update_task(db, task_id, progress=60)
@@ -211,11 +216,16 @@ def process_subtitle_task(self, task_id: int):
             batch_size = int(_batch_setting.value) if _batch_setting else 1
         except (ValueError, TypeError):
             batch_size = 1
+        def translate_progress(ratio: float):
+            # 翻译阶段占进度 60-85
+            _update_task(db, task_id, progress=int(60 + ratio * 25))
+
         translated = translator.translate_batch(
             [segment["text"] for segment in segments],
             source_lang=task.source_lang,
             target_lang=task.target_lang,
             batch_size=batch_size,
+            progress_callback=translate_progress,
         )
         for segment, translated_text in zip(segments, translated):
             segment["text"] = translated_text
