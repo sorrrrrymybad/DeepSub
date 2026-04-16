@@ -80,9 +80,27 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     applyTheme(mode, resolvedTheme)
   }, [mode, resolvedTheme])
 
-  const setMode = useCallback((next: ThemeMode) => {
-    setModeState(next)
-    writeThemeMode(next)
+  const setMode = useCallback((next: ThemeMode, coords?: { x: number; y: number }) => {
+    const update = () => {
+      setModeState(next)
+      writeThemeMode(next)
+    }
+
+    if (!coords || !document.startViewTransition) {
+      update()
+      return
+    }
+
+    const endRadius = Math.hypot(
+      Math.max(coords.x, window.innerWidth - coords.x),
+      Math.max(coords.y, window.innerHeight - coords.y),
+    )
+
+    document.documentElement.style.setProperty('--vt-x', `${coords.x}px`)
+    document.documentElement.style.setProperty('--vt-y', `${coords.y}px`)
+    document.documentElement.style.setProperty('--vt-r', `${endRadius}px`)
+
+    document.startViewTransition(update)
   }, [])
 
   const value = useMemo<ThemeContextValue>(() => ({ mode, setMode }), [mode, setMode])

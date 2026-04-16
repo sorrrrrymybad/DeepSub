@@ -86,8 +86,10 @@ export default function Layout() {
     setOpenMenu(null)
   }
 
-  const handleThemeSelect = (nextTheme: 'auto' | 'a' | 'b' | 'c') => {
-    setMode(nextTheme)
+  const handleThemeSelect = (nextTheme: 'auto' | 'a' | 'b' | 'c', event: React.MouseEvent) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const coords = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+    setMode(nextTheme, coords)
     setOpenMenu(null)
   }
 
@@ -186,7 +188,7 @@ export default function Layout() {
                   role="menuitemradio"
                   aria-label={item.label}
                   aria-checked={mode === item.value}
-                  onClick={() => handleThemeSelect(item.value as 'auto' | 'a' | 'b' | 'c')}
+                  onClick={(e) => handleThemeSelect(item.value as 'auto' | 'a' | 'b' | 'c', e)}
                   className={[
                     'flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm font-semibold transition-colors',
                     mode === item.value
