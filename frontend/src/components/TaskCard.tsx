@@ -43,6 +43,7 @@ export default function TaskCard({ task }: { task: Task }) {
   }
 
   const handleRemove = async () => {
+    if (!confirm(t('tasks.confirmDelete'))) return
     await tasksApi.remove(task.id)
     qc.invalidateQueries({ queryKey: ['tasks'] })
   }

@@ -39,7 +39,8 @@ const resources = {
         sortName: "By Name",
         loading: "Loading matrix...",
         noData: "No data present",
-        emptyDescription:"Please create a task to display."
+        emptyDescription:"Please create a task to display.",
+        confirmDelete: "Are you sure you want to delete this task?"
       },
       newTask: {
         title: "New Operation",
@@ -213,7 +214,8 @@ const resources = {
         sortName: "按文件名",
         loading: "加载矩阵中...",
         noData: "暂无数据",
-        emptyDescription:"请创建一个任务以显示"
+        emptyDescription:"请创建一个任务以显示",
+        confirmDelete: "确定删除此任务？"
       },
       newTask: {
         title: "新建任务",
