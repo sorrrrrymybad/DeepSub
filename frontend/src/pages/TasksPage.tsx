@@ -12,6 +12,8 @@ import EmptyState from '../components/page/EmptyState'
 export default function TasksPage() {
   const { t } = useTranslation()
   const [status, setStatus] = useState('')
+  const [keyword, setKeyword] = useState('')
+  const [sort, setSort] = useState('')
   const [page, setPage] = useState(1)
 
   const STATUS_FILTERS = [
@@ -23,8 +25,8 @@ export default function TasksPage() {
   ]
 
   const { data, isLoading } = useQuery({
-    queryKey: ['tasks', status, page],
-    queryFn: () => tasksApi.list({ status: status || undefined, page, page_size: 20 }),
+    queryKey: ['tasks', status, keyword, sort, page],
+    queryFn: () => tasksApi.list({ status: status || undefined, keyword: keyword || undefined, sort: sort || undefined, page, page_size: 10 }),
     refetchInterval: (query) => {
       const items = query.state.data?.items ?? []
       return items.some((t) => t.status === 'running') ? 1000 : 5000
@@ -46,7 +48,7 @@ export default function TasksPage() {
         description="监控正在进行的字幕制作任务，实时查看进度"
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatCard
           title={t('status.all')}
           value={summary?.total ?? 0}
@@ -70,7 +72,7 @@ export default function TasksPage() {
 
       <SectionCard>
         <div className="flex flex-col gap-5">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <FilterTabs
               items={STATUS_FILTERS}
               value={status}
@@ -79,6 +81,34 @@ export default function TasksPage() {
                 setPage(1)
               }}
             />
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => {
+                  setKeyword(e.target.value)
+                  setPage(1)
+                }}
+                placeholder={t('tasks.search')}
+                className="h-9 min-w-0 flex-1 rounded-full border border-outline-variant bg-surface-container-low px-4 text-sm text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:outline-none sm:w-48 sm:flex-none"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setSort((prev) => {
+                    if (!prev) return 'name_asc'
+                    if (prev === 'name_asc') return 'name_desc'
+                    return ''
+                  })
+                  setPage(1)
+                }}
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-outline-variant px-3 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant transition-colors hover:border-primary hover:text-on-surface"
+              >
+                {sort ? t('tasks.sortName') : t('tasks.sortTime')}
+                {sort === 'name_asc' && <span>↑</span>}
+                {sort === 'name_desc' && <span>↓</span>}
+              </button>
+            </div>
           </div>
 
           {isLoading ? (

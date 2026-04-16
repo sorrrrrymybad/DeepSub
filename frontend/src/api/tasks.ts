@@ -46,7 +46,7 @@ export interface TaskSummary {
 }
 
 export const tasksApi = {
-  list: (params?: { status?: string; page?: number; page_size?: number }) =>
+  list: (params?: { status?: string; keyword?: string; sort?: string; page?: number; page_size?: number }) =>
     client.get<TaskListResponse>('/tasks', { params }).then(r => r.data),
 
   summary: () =>

@@ -34,6 +34,9 @@ const resources = {
       },
       tasks: {
         title: "Tasks",
+        search: "Search file name...",
+        sortTime: "By Time",
+        sortName: "By Name",
         loading: "Loading matrix...",
         noData: "No data present",
         emptyDescription:"Please create a task to display."
@@ -205,6 +208,9 @@ const resources = {
       },
       tasks: {
         title: "任务中心",
+        search: "搜索文件名...",
+        sortTime: "按时间",
+        sortName: "按文件名",
         loading: "加载矩阵中...",
         noData: "暂无数据",
         emptyDescription:"请创建一个任务以显示"

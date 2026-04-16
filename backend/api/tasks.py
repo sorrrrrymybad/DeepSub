@@ -37,6 +37,8 @@ def create_tasks(data: TaskCreate, db: Session = Depends(get_db)):
 @router.get("", response_model=TaskListResponse)
 def list_tasks(
     status: str | None = None,
+    keyword: str | None = None,
+    sort: str | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -44,10 +46,19 @@ def list_tasks(
     query = db.query(Task)
     if status:
         query = query.filter(Task.status == status)
+    if keyword:
+        query = query.filter(Task.file_path.contains(keyword))
+
+    if sort == "name_asc":
+        order = Task.file_path.asc()
+    elif sort == "name_desc":
+        order = Task.file_path.desc()
+    else:
+        order = Task.created_at.desc()
 
     total = query.count()
     items = (
-        query.order_by(Task.created_at.desc())
+        query.order_by(order)
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()
