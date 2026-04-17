@@ -1,0 +1,41 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build: ./backend
+    image: deepsub-backend:test
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
+
+  worker:
+    build: ./backend
+    image: deepsub-backend:test
+    restart: unless-stopped
+    command: python start_worker.py
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
+
+  frontend:
+    build: ./frontend
+    image: deepsub-frontend:test
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    # 宿主端口由 .env 中 FRONTEND_PORT 决定；容器内 nginx 始终监听 80
+    depends_on:
+      - backend
+
+volumes:
+  redis_data:

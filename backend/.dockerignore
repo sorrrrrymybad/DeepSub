@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+*.pyo
+tests
+.pytest_cache
+*.db
+celerybeat-schedule.db
+.env
+.venv
+.DS_Store

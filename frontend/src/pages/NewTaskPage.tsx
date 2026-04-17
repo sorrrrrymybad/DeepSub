@@ -9,7 +9,6 @@ import { Button } from '../components/atoms/Button'
 import { useTranslation } from 'react-i18next'
 import PageHero from '../components/page/PageHero'
 import SectionCard from '../components/page/SectionCard'
-import StatCard from '../components/page/StatCard'
 import { useToast } from '../context/ToastContext'
 
 export default function NewTaskPage() {
