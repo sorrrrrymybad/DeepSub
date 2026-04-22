@@ -7,7 +7,7 @@ services:
 
   backend:
     build: ./backend
-    image: deepsub-backend:test
+    image: deepsub-backend:latest
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8000
     env_file: .env
@@ -18,7 +18,7 @@ services:
 
   worker:
     build: ./backend
-    image: deepsub-backend:test
+    image: deepsub-backend:latest
     restart: unless-stopped
     command: python start_worker.py
     env_file: .env
@@ -29,7 +29,7 @@ services:
 
   frontend:
     build: ./frontend
-    image: deepsub-frontend:test
+    image: deepsub-frontend:latest
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-80}:80"
