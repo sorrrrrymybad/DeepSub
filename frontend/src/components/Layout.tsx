@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '../theme/ThemeProvider'
+import { THEME_OPTIONS } from '../theme/themeTypes'
 
 type MenuType = 'language' | 'theme' | null
 
@@ -46,9 +47,9 @@ export default function Layout() {
   }, [location.pathname])
 
   const navItems = [
-    { to: '/tasks', label: t('nav.Tasks'), end: true },
-    { to: '/tasks/new', label: t('nav.NewTask'), end: true },
-    { to: '/settings', label: t('nav.Settings'), end: false },
+    { to: '/tasks', label: t('layout.navTasks'), end: true },
+    { to: '/tasks/new', label: t('layout.navNewTask'), end: true },
+    { to: '/settings', label: t('layout.navSettings'), end: false },
   ]
 
   useEffect(() => {
@@ -86,7 +87,7 @@ export default function Layout() {
     setOpenMenu(null)
   }
 
-  const handleThemeSelect = (nextTheme: 'auto' | 'a' | 'b' | 'c', event: React.MouseEvent) => {
+  const handleThemeSelect = (nextTheme: (typeof THEME_OPTIONS)[number]['value'], event: React.MouseEvent) => {
     const rect = event.currentTarget.getBoundingClientRect()
     const coords = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
     setMode(nextTheme, coords)
@@ -102,7 +103,7 @@ export default function Layout() {
           <div className="min-w-0">
             <h1 className="mt-1 text-2xl font-black tracking-[-0.05em] text-on-surface md:text-3xl">DeepSub</h1>
             <p className="mt-1 text-[0.82rem] font-semibold uppercase tracking-[0.18em] text-primary">
-              AI字幕翻译工具
+              {t('layout.appTagline')}
             </p>
           </div>
         </div>
@@ -173,22 +174,20 @@ export default function Layout() {
           {openMenu === 'theme' && (
             <div
               role="menu"
-              aria-label="theme"
+              aria-label={t('layout.themeMenuLabel')}
               className="absolute right-0 top-14 min-w-[220px] rounded-[20px] border border-outline-variant bg-surface-container-lowest p-2 shadow-[var(--shadow-card)]"
             >
-              {[
-                { value: 'auto', label: 'Auto' },
-                { value: 'a', label: 'Theme A' },
-                { value: 'b', label: 'Theme B' },
-                { value: 'c', label: 'Theme C' },
-              ].map((item) => (
+              {THEME_OPTIONS.map((item) => {
+                const label = t(item.labelKey)
+
+                return (
                 <button
                   key={item.value}
                   type="button"
                   role="menuitemradio"
-                  aria-label={item.label}
+                  aria-label={label}
                   aria-checked={mode === item.value}
-                  onClick={(e) => handleThemeSelect(item.value as 'auto' | 'a' | 'b' | 'c', e)}
+                  onClick={(e) => handleThemeSelect(item.value, e)}
                   className={[
                     'flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm font-semibold transition-colors',
                     mode === item.value
@@ -196,10 +195,11 @@ export default function Layout() {
                       : 'text-on-surface hover:bg-surface-container-low',
                   ].join(' ')}
                 >
-                  <span>{item.label}</span>
+                  <span>{label}</span>
                   {mode === item.value ? <span>✓</span> : null}
                 </button>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -229,7 +229,7 @@ export default function Layout() {
           ].join(' ')}
         >
           <div className="mt-[98px] mb-4 flex items-center justify-between">
-            <span className="text-sm font-semibold text-on-surface-variant">导航</span>
+            <span className="text-sm font-semibold text-on-surface-variant">{t('layout.mobileNavTitle')}</span>
             <button
               type="button"
               aria-label="close menu"

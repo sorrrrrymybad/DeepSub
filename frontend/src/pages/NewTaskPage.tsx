@@ -27,26 +27,26 @@ export default function NewTaskPage() {
   const [submitting, setSubmitting] = useState(false)
 
   const STT_ENGINES = [
-    { value: 'whisper_local', label: t('engines.whisperLocal') },
-    { value: 'openai_whisper', label: t('engines.whisperApi') },
+    { value: 'whisper_local', label: t('newTaskPage.engineWhisperLocal') },
+    { value: 'openai_whisper', label: t('newTaskPage.engineWhisperApi') },
   ]
 
   const TRANSLATE_ENGINES = [
-    { value: 'deeplx', label: t('engines.deeplx') },
-    { value: 'deepl', label: t('engines.deepl') },
-    { value: 'google', label: t('engines.google') },
-    { value: 'openai', label: t('engines.openai') },
-    { value: 'claude', label: t('engines.claude') },
+    { value: 'deeplx', label: t('newTaskPage.engineDeeplx') },
+    { value: 'deepl', label: t('newTaskPage.engineDeepl') },
+    { value: 'google', label: t('newTaskPage.engineGoogle') },
+    { value: 'openai', label: t('newTaskPage.engineOpenai') },
+    { value: 'claude', label: t('newTaskPage.engineClaude') },
   ]
 
   const LANGUAGES = [
-    { value: 'auto', label: t('lang.auto') },
-    { value: 'zh', label: t('lang.zh') },
-    { value: 'en', label: t('lang.en') },
-    { value: 'ja', label: t('lang.ja') },
-    { value: 'ko', label: t('lang.ko') },
-    { value: 'fr', label: t('lang.fr') },
-    { value: 'de', label: t('lang.de') },
+    { value: 'auto', label: t('newTaskPage.languageAuto') },
+    { value: 'zh', label: t('newTaskPage.languageZh') },
+    { value: 'en', label: t('newTaskPage.languageEn') },
+    { value: 'ja', label: t('newTaskPage.languageJa') },
+    { value: 'ko', label: t('newTaskPage.languageKo') },
+    { value: 'fr', label: t('newTaskPage.languageFr') },
+    { value: 'de', label: t('newTaskPage.languageDe') },
   ]
 
   const { data: servers } = useQuery({ queryKey: ['smb-servers'], queryFn: smbApi.list })
@@ -65,7 +65,12 @@ export default function NewTaskPage() {
 
   const handleSubmit = async () => {
     if (selectedFiles.length === 0 || (sourceType === 'smb' && !serverId)) {
-      show(sourceType === 'smb' ? t('newTask.errNoFiles') : t('newTask.errNoLocalFiles'), 'warning')
+      show(
+        sourceType === 'smb'
+          ? t('newTaskPage.missingSmbSelectionError')
+          : t('newTaskPage.missingLocalSelectionError'),
+        'warning',
+      )
       return
     }
 
@@ -83,8 +88,8 @@ export default function NewTaskPage() {
         overwrite,
       })
       navigate('/tasks')
-    } catch (e: any) {
-      show(e.message, 'error')
+    } catch (e: unknown) {
+      show(e instanceof Error ? e.message : t('common.error'), 'error')
     } finally {
       setSubmitting(false)
     }
@@ -93,51 +98,20 @@ export default function NewTaskPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHero
-        // eyebrow="Task Intake"
-        title={t('newTask.title')}
-        description={t('newTask.heroDesc')}
-        // aside={
-        //   <div className="space-y-3 rounded-[22px] border border-outline-variant bg-surface-container-low px-4 py-4 shadow-[var(--shadow-soft)]">
-        //     <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
-        //       Dispatch Readiness
-        //     </p>
-        //     <p className="text-3xl font-black tracking-[-0.05em] text-on-surface">{selectedFiles.length}</p>
-        //     <p className="text-sm text-on-surface-variant">
-        //       {t('newTask.selectedArgs', { count: selectedFiles.length })}
-        //     </p>
-        //   </div>
-        // }
+        title={t('newTaskPage.title')}
+        description={t('newTaskPage.heroDescription')}
       />
-
-      {/*<div className="grid gap-4 md:grid-cols-3">
-        <StatCard
-          title={t('newTask.smbServer')}
-          value={serverId ? 1 : 0}
-          hint={serverId ? servers?.find((server) => server.id === serverId)?.name : t('newTask.selectServer')}
-        />
-        <StatCard
-          title={t('newTask.selectionTitle')}
-          value={selectedFiles.length}
-          hint={t('newTask.selectionDesc')}
-          tone="accent"
-        />
-        <StatCard
-          title={t('newTask.transEngine')}
-          value={translateEngine}
-          hint={t('newTask.submitHint')}
-        />
-      </div>*/}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
         <SectionCard
-          eyebrow="SERVER"
-          title={t('newTask.pipelineTitle')}
-          description={t('newTask.pipelineDesc')}
+          eyebrow={t('newTaskPage.pipelineEyebrow')}
+          title={t('newTaskPage.pipelineTitle')}
+          description={t('newTaskPage.pipelineDescription')}
         >
           <div className="flex flex-col gap-5">
             <div className="rounded-[20px] border border-outline-variant bg-surface-container-low p-4">
               <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
-                {t('newTask.sourceType')}
+                {t('newTaskPage.sourceTypeLabel')}
               </p>
               <div className="flex flex-wrap gap-3">
                 {(['smb', 'local'] as const).map((type) => {
@@ -160,7 +134,7 @@ export default function NewTaskPage() {
                           : 'border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary',
                       ].join(' ')}
                     >
-                      {type === 'smb' ? t('newTask.sourceSMB') : t('newTask.sourceLocal')}
+                      {type === 'smb' ? t('newTaskPage.sourceSmbLabel') : t('newTaskPage.sourceLocalLabel')}
                     </button>
                   )
                 })}
@@ -174,11 +148,11 @@ export default function NewTaskPage() {
                     htmlFor="new-task-server"
                     className="mb-3 block text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant"
                   >
-                    {t('newTask.smbServer')}
+                    {t('newTaskPage.smbServerLabel')}
                   </label>
                   <select
                     id="new-task-server"
-                    aria-label={t('newTask.smbServer')}
+                    aria-label={t('newTaskPage.smbServerLabel')}
                     value={serverId ?? ''}
                     onChange={e => {
                       const nextValue = e.target.value
@@ -187,7 +161,7 @@ export default function NewTaskPage() {
                     }}
                     className="w-full rounded-2xl px-4 py-3 text-sm"
                   >
-                    <option value="">{t('newTask.selectServer')}</option>
+                    <option value="">{t('newTaskPage.selectServerPlaceholder')}</option>
                     {servers?.map(s => <option key={s.id} value={s.id}>{s.name} ({s.host})</option>)}
                   </select>
                 </div>
@@ -204,35 +178,35 @@ export default function NewTaskPage() {
 
         <div className="flex flex-col gap-6">
           <SectionCard
-            eyebrow="Profile"
-            title={t('newTask.profileTitle')}
-            description={t('newTask.profileDesc')}
+            eyebrow={t('newTaskPage.profileEyebrow')}
+            title={t('newTaskPage.profileTitle')}
+            description={t('newTaskPage.profileDescription')}
           >
             <div className="grid gap-4">
               <EngineSelector
                 id="new-task-source-lang"
-                label={t('newTask.sourceLang')}
+                label={t('newTaskPage.sourceLanguageLabel')}
                 value={sourceLang}
                 onChange={setSourceLang}
                 options={LANGUAGES}
               />
               <EngineSelector
                 id="new-task-target-lang"
-                label={t('newTask.targetLang')}
+                label={t('newTaskPage.targetLanguageLabel')}
                 value={targetLang}
                 onChange={setTargetLang}
                 options={LANGUAGES.filter(l => l.value !== 'auto')}
               />
               <EngineSelector
                 id="new-task-stt-engine"
-                label={t('newTask.sttEngine')}
+                label={t('newTaskPage.sttEngineLabel')}
                 value={sttEngine}
                 onChange={setSttEngine}
                 options={STT_ENGINES}
               />
               <EngineSelector
                 id="new-task-translate-engine"
-                label={t('newTask.transEngine')}
+                label={t('newTaskPage.translationEngineLabel')}
                 value={translateEngine}
                 onChange={setTranslateEngine}
                 options={TRANSLATE_ENGINES}
@@ -246,16 +220,16 @@ export default function NewTaskPage() {
                   className="h-4 w-4 rounded border-outline-variant bg-surface custom-checkbox"
                 />
                 <span className="font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
-                  {t('newTask.overwrite')}
+                  {t('newTaskPage.overwriteLabel')}
                 </span>
               </label>
             </div>
           </SectionCard>
 
           <SectionCard
-            eyebrow="Review"
-            title={t('newTask.selectionTitle')}
-            description={t('newTask.selectionDesc')}
+            eyebrow={t('newTaskPage.reviewEyebrow')}
+            title={t('newTaskPage.reviewTitle')}
+            description={t('newTaskPage.reviewDescription')}
           >
             <div className="space-y-4">
               {selectedFiles.length > 0 ? (
@@ -280,14 +254,16 @@ export default function NewTaskPage() {
                 </ul>
               ) : (
                 <div className="rounded-[18px] border border-dashed border-outline-variant bg-surface-container-low p-5 text-sm text-on-surface-variant">
-                  {t('newTask.selectionEmpty')}
+                  {t('newTaskPage.selectionEmpty')}
                 </div>
               )}
 
               <div className="flex flex-col gap-3">
-                <p className="text-sm text-on-surface-variant">{t('newTask.submitHint')}</p>
+                <p className="text-sm text-on-surface-variant">{t('newTaskPage.submitHint')}</p>
                 <Button variant="primary" onClick={handleSubmit} disabled={submitting}>
-                  {submitting ? t('newTask.executing') : t('newTask.commitOps', { count: selectedFiles.length })}
+                  {submitting
+                    ? t('newTaskPage.submitting')
+                    : t('newTaskPage.submitCount', { count: selectedFiles.length })}
                 </Button>
               </div>
             </div>

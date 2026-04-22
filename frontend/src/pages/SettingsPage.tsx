@@ -147,11 +147,11 @@ export default function SettingsPage() {
     try {
       const result = await settingsApi.postWhisperDownload(currentModelSize)
       if (result.reason === 'already_exists') {
-        show(t('settings.whisper.alreadyExists'), 'success')
+        show(t('settingsPage.whisperAlreadyExistsToast'), 'success')
       } else if (result.ok) {
-        show(t('settings.whisper.downloadStarted'), 'success')
+        show(t('settingsPage.whisperDownloadStartedToast'), 'success')
       } else if (result.error) {
-        show(t('settings.whisper.downloadError', { msg: result.error }), 'error')
+        show(t('settingsPage.whisperDownloadErrorToast', { msg: result.error }), 'error')
       }
     } catch (e: unknown) {
       show(e instanceof Error ? e.message : t('common.error'), 'error')
@@ -172,10 +172,26 @@ export default function SettingsPage() {
 
   const sections = useMemo(
     () => [
-      { id: 'system', label: t('settings.systemTitle'), description: t('settings.systemDesc') },
-      { id: 'smb', label: t('settings.smbServers'), description: t('settings.smbDesc') },
-      { id: 'stt', label: t('settings.sttTitle'), description: t('settings.sttDesc') },
-      { id: 'translate', label: t('settings.transTitle'), description: t('settings.translateDesc') },
+      {
+        id: 'system',
+        label: t('settingsPage.systemSectionTitle'),
+        description: t('settingsPage.systemSectionDescription'),
+      },
+      {
+        id: 'smb',
+        label: t('settingsPage.smbSectionTitle'),
+        description: t('settingsPage.smbSectionDescription'),
+      },
+      {
+        id: 'stt',
+        label: t('settingsPage.sttSectionTitle'),
+        description: t('settingsPage.sttSectionDescription'),
+      },
+      {
+        id: 'translate',
+        label: t('settingsPage.translateSectionTitle'),
+        description: t('settingsPage.translateSectionDescription'),
+      },
     ] satisfies Array<{ id: SettingsSectionId; label: string; description: string }>,
     [t],
   )
@@ -212,7 +228,7 @@ export default function SettingsPage() {
       await smbApi.create(form)
       qc.invalidateQueries({ queryKey: ['smb-servers'] })
       setForm({ name: '', host: '', port: 445, share: '', username: '', password: '' })
-      show(t('settings.serverAdded'), 'success')
+      show(t('settingsPage.serverAddedToast'), 'success')
     } catch (e: unknown) {
       show(e instanceof Error ? e.message : t('common.error'), 'error')
     }
@@ -238,11 +254,11 @@ export default function SettingsPage() {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm(t('settings.confirmDel'))) return
+    if (!confirm(t('settingsPage.confirmDeleteServer'))) return
     try {
       await smbApi.delete(id)
       qc.invalidateQueries({ queryKey: ['smb-servers'] })
-      show(t('settings.serverDeleted'), 'success')
+      show(t('settingsPage.serverDeletedToast'), 'success')
     } catch (e: unknown) {
       show(e instanceof Error ? e.message : t('common.error'), 'error')
     }
@@ -252,7 +268,7 @@ export default function SettingsPage() {
     try {
       await settingsApi.patchSystem(systemForm)
       qc.invalidateQueries({ queryKey: ['settings-system'] })
-      show(t('settings.systemSaved'), 'success')
+      show(t('settingsPage.systemSavedToast'), 'success')
     } catch (e: unknown) {
       show(e instanceof Error ? e.message : t('common.error'), 'error')
     }
@@ -262,7 +278,7 @@ export default function SettingsPage() {
     try {
       await settingsApi.patchSTT(sttForm)
       qc.invalidateQueries({ queryKey: ['settings-stt'] })
-      show(t('settings.sttSaved'), 'success')
+      show(t('settingsPage.sttSavedToast'), 'success')
     } catch (e: unknown) {
       show(e instanceof Error ? e.message : t('common.error'), 'error')
     }
@@ -272,66 +288,71 @@ export default function SettingsPage() {
     try {
       await settingsApi.patchTranslate(translateForm)
       qc.invalidateQueries({ queryKey: ['settings-translate'] })
-      show(t('settings.transSaved'), 'success')
+      show(t('settingsPage.translateSavedToast'), 'success')
     } catch (e: unknown) {
       show(e instanceof Error ? e.message : t('common.error'), 'error')
     }
   }
 
   const serverFields = [
-    { key: 'name', label: t('settings.name') },
-    { key: 'host', label: t('settings.host') },
-    { key: 'share', label: t('settings.share') },
-    { key: 'username', label: t('settings.username') },
-    { key: 'password', label: t('settings.password'), type: 'password' as const },
-    { key: 'port', label: t('settings.port'), type: 'number' as const },
+    { key: 'name', label: t('settingsPage.nameLabel') },
+    { key: 'host', label: t('settingsPage.hostLabel') },
+    { key: 'share', label: t('settingsPage.shareLabel') },
+    { key: 'username', label: t('settingsPage.usernameLabel') },
+    { key: 'password', label: t('settingsPage.passwordLabel'), type: 'password' as const },
+    { key: 'port', label: t('settingsPage.portLabel'), type: 'number' as const },
   ]
 
   const translateGroups: Array<{ label: string; fields: ConfigField[] }> = [
     {
-      label: t('settings.groups.general'),
+      label: t('settingsPage.generalGroupTitle'),
       fields: [
-        { key: 'batch_size', label: t('settings.fields.batchSize') },
+        { key: 'batch_size', label: t('settingsPage.batchSizeLabel') },
         {
           key: 'translate_prompt',
-          label: t('settings.fields.translatePrompt'),
+          label: t('settingsPage.translatePromptLabel'),
           textarea: true,
-          placeholder: t('settings.fields.translatePromptPlaceholder'),
+          placeholder: t('settingsPage.translatePromptPlaceholder'),
         },
       ],
     },
     {
       label: 'DeepLX',
       fields: [
-        { key: 'deeplx_endpoint', label: t('settings.fields.deeplxEndpoint'), textarea: true, placeholder: t('settings.fields.deeplxEndpointPlaceholder') },
+        {
+          key: 'deeplx_endpoint',
+          label: t('settingsPage.deeplxEndpointLabel'),
+          textarea: true,
+          placeholder: t('settingsPage.deeplxEndpointPlaceholder'),
+        },
       ],
     },
     {
       label: 'DeepL',
       fields: [
-        { key: 'deepl_api_key', label: t('settings.fields.deeplKey'), secret: true },
+        { key: 'deepl_api_key', label: t('settingsPage.deeplApiKeyLabel'), secret: true },
       ],
     },
     {
       label: 'Google Translate',
       fields: [
-        { key: 'google_api_key', label: t('settings.fields.googleKey'), secret: true },
+        { key: 'google_api_key', label: t('settingsPage.googleApiKeyLabel'), secret: true },
       ],
     },
     {
       label: 'OpenAI',
       fields: [
-        { key: 'openai_api_key', label: t('settings.fields.openaiKey'), secret: true },
-        { key: 'openai_model', label: t('settings.fields.openaiModel') },
-        { key: 'openai_base_url', label: t('settings.fields.openaiBase') },
+        { key: 'openai_api_key', label: t('settingsPage.openaiApiKeyLabel'), secret: true },
+        { key: 'openai_model', label: t('settingsPage.openaiModelLabel') },
+        { key: 'openai_base_url', label: t('settingsPage.openaiBaseUrlLabel') },
       ],
     },
     {
       label: 'Claude',
       fields: [
-        { key: 'claude_api_key', label: t('settings.fields.claudeKey'), secret: true },
-        { key: 'claude_model', label: t('settings.fields.claudeModel') },
-        { key: 'claude_base_url', label: t('settings.fields.claudeBase') },
+        { key: 'claude_api_key', label: t('settingsPage.claudeApiKeyLabel'), secret: true },
+        { key: 'claude_model', label: t('settingsPage.claudeModelLabel') },
+        { key: 'claude_base_url', label: t('settingsPage.claudeBaseUrlLabel') },
       ],
     },
   ]
@@ -339,13 +360,13 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHero
-        title={t('settings.title')}
-        description={t('settings.heroDesc')}
+        title={t('settingsPage.title')}
+        description={t('settingsPage.heroDescription')}
       />
 
       <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)]">
         <SettingsDirectory
-          title={t('settings.directoryTitle')}
+          title={t('settingsPage.directoryTitle')}
           sections={sections}
           activeSection={activeSection}
           onSelect={(sectionId) => scrollToSection(sectionId as SettingsSectionId)}
@@ -354,15 +375,15 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-6">
           <section ref={sectionRefs.system} className="scroll-mt-[122px]">
             <SectionCard
-              eyebrow="System"
-              title={t('settings.systemTitle')}
-              description={t('settings.systemDesc')}
-              actions={<Button variant="secondary" onClick={handleSaveSystem}>{t('settings.commitSystem')}</Button>}
+              eyebrow={t('settingsPage.systemEyebrow')}
+              title={t('settingsPage.systemSectionTitle')}
+              description={t('settingsPage.systemSectionDescription')}
+              actions={<Button variant="secondary" onClick={handleSaveSystem}>{t('settingsPage.saveSystemButton')}</Button>}
             >
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   id="worker_concurrency"
-                  label={t('settings.workerConcurrency')}
+                  label={t('settingsPage.workerConcurrencyLabel')}
                   type="number"
                   value={systemForm['worker_concurrency'] ?? systemData?.['worker_concurrency'] ?? '2'}
                   onChange={(value) => setSystemForm((current) => ({ ...current, worker_concurrency: value }))}
@@ -373,9 +394,9 @@ export default function SettingsPage() {
 
           <section ref={sectionRefs.smb} className="scroll-mt-[122px]">
             <SectionCard
-              eyebrow="Storage"
-              title={t('settings.smbServers')}
-              description={t('settings.smbDesc')}
+              eyebrow={t('settingsPage.storageEyebrow')}
+              title={t('settingsPage.smbSectionTitle')}
+              description={t('settingsPage.smbSectionDescription')}
             >
               <div className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-2">
@@ -410,12 +431,12 @@ export default function SettingsPage() {
                             ].join(' ')}
                           >
                             {isTesting
-                              ? t('settings.testing')
+                              ? t('settingsPage.testingButton')
                               : result
                                 ? result.ok
                                   ? t('common.success')
                                   : t('common.failed')
-                                : t('settings.ping')}
+                                : t('settingsPage.testConnectionButton')}
                           </button>
                           <button
                             type="button"
@@ -432,7 +453,7 @@ export default function SettingsPage() {
 
                 <div className="rounded-[22px] border border-outline-variant bg-surface-container-low p-5">
                   <p className="mb-4 text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
-                    {t('settings.addServer')}
+                    {t('settingsPage.addServerTitle')}
                   </p>
                   <div className="grid gap-4 md:grid-cols-2">
                     {serverFields.map((field) => (
@@ -453,7 +474,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="mt-5">
                     <Button variant="primary" onClick={handleCreate}>
-                      {t('settings.attachServer')}
+                      {t('settingsPage.attachServerButton')}
                     </Button>
                   </div>
                 </div>
@@ -463,16 +484,16 @@ export default function SettingsPage() {
 
           <section ref={sectionRefs.stt} className="scroll-mt-[122px]">
             <SectionCard
-              eyebrow="Speech"
-              title={t('settings.sttTitle')}
-              description={t('settings.sttDesc')}
-              actions={<Button variant="secondary" onClick={handleSaveSTT}>{t('settings.commitStt')}</Button>}
+              eyebrow={t('settingsPage.speechEyebrow')}
+              title={t('settingsPage.sttSectionTitle')}
+              description={t('settingsPage.sttSectionDescription')}
+              actions={<Button variant="secondary" onClick={handleSaveSTT}>{t('settingsPage.saveSttButton')}</Button>}
             >
               <div className="flex flex-col gap-6">
                 {/* 本地 Whisper 分组 */}
                 <div>
                   <p className="mb-3 text-[0.9rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant underline">
-                    {t('settings.groups.whisperLocal')}
+                    {t('settingsPage.localWhisperGroupTitle')}
                   </p>
                   <div className="grid gap-4 md:grid-cols-2">
                     {/* 模型类别 */}
@@ -481,7 +502,7 @@ export default function SettingsPage() {
                         htmlFor="whisper_local_model_size"
                         className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant"
                       >
-                        {t('settings.fields.whisperLocalModelSize')}
+                        {t('settingsPage.whisperModelLabel')}
                       </label>
                       <select
                         id="whisper_local_model_size"
@@ -504,7 +525,7 @@ export default function SettingsPage() {
                         htmlFor="whisper_local_compute_type"
                         className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant"
                       >
-                        {t('settings.fields.whisperLocalComputeType')}
+                        {t('settingsPage.whisperComputeTypeLabel')}
                       </label>
                       <select
                         id="whisper_local_compute_type"
@@ -525,27 +546,27 @@ export default function SettingsPage() {
                       {(() => {
                         if (!whisperStatus) return (
                           <span className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold bg-surface-container text-on-surface-variant">
-                            {t('settings.whisper.statusChecking')}
+                            {t('settingsPage.whisperStatusChecking')}
                           </span>
                         )
                         if (whisperStatus.downloading) return (
                           <span className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold bg-primary/10 text-primary">
-                            {t('settings.whisper.statusDownloading', { progress: whisperStatus.progress ?? 0 })}
+                            {t('settingsPage.whisperStatusDownloading', { progress: whisperStatus.progress ?? 0 })}
                           </span>
                         )
                         if (whisperStatus.exists) return (
                           <span className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold bg-[var(--color-success,#22c55e)]/10 text-[var(--color-success,#22c55e)]">
-                            {t('settings.whisper.statusExists')}
+                            {t('settingsPage.whisperStatusExists')}
                           </span>
                         )
                         if (whisperStatus.error) return (
                           <span className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold bg-error-container text-on-error-container">
-                            {t('settings.whisper.statusError')}
+                            {t('settingsPage.whisperStatusError')}
                           </span>
                         )
                         return (
                           <span className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold bg-surface-container text-on-surface-variant">
-                            {t('settings.whisper.statusMissing')}
+                            {t('settingsPage.whisperStatusMissing')}
                           </span>
                         )
                       })()}
@@ -556,8 +577,8 @@ export default function SettingsPage() {
                         className="shrink-0 inline-flex items-center justify-center rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs font-semibold text-on-surface-variant transition-colors hover:border-primary hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {(isSubmittingDownload || whisperStatus?.downloading)
-                          ? t('settings.whisper.btnDownloading')
-                          : t('settings.whisper.btnDownload')}
+                          ? t('settingsPage.whisperDownloadingButton')
+                          : t('settingsPage.whisperDownloadButton')}
                       </button>
                     </div>
                   </div>
@@ -565,12 +586,12 @@ export default function SettingsPage() {
                 {/* OpenAI Whisper 分组 */}
                 <div>
                   <p className="mb-3 text-[0.9rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant underline">
-                    {t('settings.groups.openaiWhisper')}
+                    {t('settingsPage.openaiWhisperGroupTitle')}
                   </p>
                   <div className="grid gap-4 md:grid-cols-2">
                     <FormField
                       id="openai_whisper_api_key"
-                      label={t('settings.fields.openaiWhisper')}
+                      label={t('settingsPage.openaiWhisperApiKeyLabel')}
                       type="password"
                       value={sttForm['openai_whisper_api_key'] ?? sttData?.['openai_whisper_api_key'] ?? ''}
                       onChange={(value) => setSttForm((current) => ({ ...current, openai_whisper_api_key: value }))}
@@ -583,10 +604,10 @@ export default function SettingsPage() {
 
           <section ref={sectionRefs.translate} className="scroll-mt-[122px]">
             <SectionCard
-              eyebrow="Translation"
-              title={t('settings.transTitle')}
-              description={t('settings.translateDesc')}
-              actions={<Button variant="secondary" onClick={handleSaveTranslate}>{t('settings.commitTrans')}</Button>}
+              eyebrow={t('settingsPage.translationEyebrow')}
+              title={t('settingsPage.translateSectionTitle')}
+              description={t('settingsPage.translateSectionDescription')}
+              actions={<Button variant="secondary" onClick={handleSaveTranslate}>{t('settingsPage.saveTranslateButton')}</Button>}
             >
               <div className="flex flex-col gap-6">
                 {(() => {

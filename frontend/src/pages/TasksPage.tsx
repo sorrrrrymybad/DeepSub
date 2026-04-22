@@ -17,11 +17,11 @@ export default function TasksPage() {
   const [page, setPage] = useState(1)
 
   const STATUS_FILTERS = [
-    { label: t('status.all'), value: '' },
-    { label: t('status.pending'), value: 'pending' },
-    { label: t('status.running'), value: 'running' },
-    { label: t('status.done'), value: 'done' },
-    { label: t('status.failed'), value: 'failed' },
+    { label: t('taskStatus.all'), value: '' },
+    { label: t('taskStatus.pending'), value: 'pending' },
+    { label: t('taskStatus.running'), value: 'running' },
+    { label: t('taskStatus.done'), value: 'done' },
+    { label: t('taskStatus.failed'), value: 'failed' },
   ]
 
   const { data, isLoading } = useQuery({
@@ -44,27 +44,27 @@ export default function TasksPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHero
-        title={t('tasks.title')}
-        description="监控正在进行的字幕制作任务，实时查看进度"
+        title={t('tasksPage.title')}
+        description={t('tasksPage.heroDescription')}
       />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatCard
-          title={t('status.all')}
+          title={t('taskStatus.all')}
           value={summary?.total ?? 0}
         />
         <StatCard
-          title={t('status.running')}
+          title={t('taskStatus.running')}
           value={summary?.running ?? 0}
           tone="accent"
         />
         <StatCard
-          title={t('status.done')}
+          title={t('taskStatus.done')}
           value={summary?.done ?? 0}
           tone="success"
         />
         <StatCard
-          title={t('status.failed')}
+          title={t('taskStatus.failed')}
           value={summary?.failed ?? 0}
           tone="danger"
         />
@@ -89,7 +89,7 @@ export default function TasksPage() {
                   setKeyword(e.target.value)
                   setPage(1)
                 }}
-                placeholder={t('tasks.search')}
+                placeholder={t('tasksPage.searchPlaceholder')}
                 className="h-9 min-w-0 flex-1 rounded-full border border-outline-variant bg-surface-container-low px-4 text-sm text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:outline-none sm:w-48 sm:flex-none"
               />
               <button
@@ -104,7 +104,7 @@ export default function TasksPage() {
                 }}
                 className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-outline-variant px-3 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant transition-colors hover:border-primary hover:text-on-surface"
               >
-                {sort ? t('tasks.sortName') : t('tasks.sortTime')}
+                {sort ? t('tasksPage.sortByName') : t('tasksPage.sortByTime')}
                 {sort === 'name_asc' && <span>↑</span>}
                 {sort === 'name_desc' && <span>↓</span>}
               </button>
@@ -113,12 +113,12 @@ export default function TasksPage() {
 
           {isLoading ? (
             <div className="rounded-[20px] border border-outline-variant bg-surface-container-low p-8 text-center text-sm text-on-surface-variant">
-              {t('tasks.loading')}
+              {t('tasksPage.loadingState')}
             </div>
           ) : items.length === 0 ? (
             <EmptyState
-              title={t('tasks.noData')}
-              description={t('tasks.emptyDescription')}
+              title={t('tasksPage.emptyTitle')}
+              description={t('tasksPage.emptyDescription')}
             />
           ) : (
             <div className="flex flex-col gap-4">
@@ -133,10 +133,10 @@ export default function TasksPage() {
       {data && data.total > data.page_size && (
         <div className="flex items-center justify-center gap-4">
           <Button variant="ghost" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-            {t('common.prev')}
+            {t('common.previous')}
           </Button>
           <span className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
-            {t('common.pageOf', { current: page, total: Math.ceil(data.total / data.page_size) })}
+            {t('common.pageIndicator', { current: page, total: Math.ceil(data.total / data.page_size) })}
           </span>
           <Button
             variant="ghost"

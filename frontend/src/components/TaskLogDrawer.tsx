@@ -11,7 +11,7 @@ export default function TaskLogDrawer({ taskId, onClose }: { taskId: number; onC
     fetch(tasksApi.getLogsUrl(taskId))
       .then(r => r.text())
       .then(setLogs)
-      .catch((err) => setLogs(t('drawer.failedLoad', { msg: err.message })))
+      .catch((err) => setLogs(t('taskLogDrawer.failedLoad', { msg: err.message })))
   }, [taskId, t])
 
   useEffect(() => {
@@ -29,10 +29,10 @@ export default function TaskLogDrawer({ taskId, onClose }: { taskId: number; onC
         <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-6 py-5">
           <div>
             <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
-              Task Logs
+              {t('taskLogDrawer.panelLabel')}
             </p>
             <h2 className="mt-2 text-[1.125rem] font-bold tracking-[-0.03em] text-on-surface">
-              {t('drawer.title', { id: taskId })}
+              {t('taskLogDrawer.title', { id: taskId })}
             </h2>
           </div>
           <button
@@ -43,7 +43,7 @@ export default function TaskLogDrawer({ taskId, onClose }: { taskId: number; onC
           </button>
         </div>
         <pre className="flex-1 overflow-auto bg-background p-6 text-sm leading-7 text-on-surface">
-          {logs || t('drawer.noLogs')}
+          {logs || t('taskLogDrawer.emptyState')}
           <div ref={bottomRef} />
         </pre>
       </div>

@@ -43,7 +43,7 @@ export default function TaskCard({ task }: { task: Task }) {
   }
 
   const handleRemove = async () => {
-    if (!confirm(t('tasks.confirmDelete'))) return
+    if (!confirm(t('taskCard.confirmDelete'))) return
     await tasksApi.remove(task.id)
     qc.invalidateQueries({ queryKey: ['tasks'] })
   }
@@ -69,8 +69,8 @@ export default function TaskCard({ task }: { task: Task }) {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <Badge>{task.source_type === 'local' ? 'LOCAL' : 'SMB'}</Badge>
-            <Badge variant={task.status}>{t(`status.${task.status}`)}</Badge>
+            <Badge>{task.source_type === 'local' ? t('taskCard.sourceLocalBadge') : t('taskCard.sourceSmbBadge')}</Badge>
+            <Badge variant={task.status}>{t(`taskStatus.${task.status}`)}</Badge>
             {duration && (
               <span className="rounded-full border border-outline-variant px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
                 {duration}
@@ -82,7 +82,7 @@ export default function TaskCard({ task }: { task: Task }) {
         {task.status === 'running' && (
           <div className="mt-4">
             <div className="mb-2 flex items-center justify-between text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
-              <span>{t('status.running')}</span>
+              <span>{t('taskStatus.running')}</span>
               <span>{task.progress}%</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-surface-container-high">
