@@ -20,6 +20,8 @@ services:
     build: ./backend
     image: deepsub-backend:latest
     restart: unless-stopped
+    stdin_open: true
+    tty: true
     command: python start_worker.py
     env_file: .env
     volumes:
