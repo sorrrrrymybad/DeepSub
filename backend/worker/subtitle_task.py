@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -26,12 +27,52 @@ from worker.subtitle_extractor import (
 logger = logging.getLogger(__name__)
 
 
+class _TaskIdFilter(logging.Filter):
+    def __init__(self, task_id: int):
+        super().__init__()
+        self.task_id = task_id
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.task_id = self.task_id
+        return True
+
+
 def _get_log_path(task_id: int) -> str:
     return str(settings.log_dir / f"{task_id}.log")
 
 
 def _get_tmp_dir(task_id: int) -> str:
     return str(settings.tmp_dir / str(task_id))
+
+
+def _cleanup_task_logger(task_logger: logging.Logger) -> None:
+    for handler in list(task_logger.handlers):
+        task_logger.removeHandler(handler)
+        handler.close()
+
+
+def _configure_task_logger(task_id: int, log_path: str | Path) -> logging.Logger:
+    task_logger = logging.getLogger(f"task.{task_id}")
+    _cleanup_task_logger(task_logger)
+
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] [task:%(task_id)s] %(message)s"
+    )
+    task_id_filter = _TaskIdFilter(task_id)
+
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    file_handler.addFilter(task_id_filter)
+
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(formatter)
+    stream_handler.addFilter(task_id_filter)
+
+    task_logger.setLevel(logging.INFO)
+    task_logger.propagate = False
+    task_logger.addHandler(file_handler)
+    task_logger.addHandler(stream_handler)
+    return task_logger
 
 
 def _update_task(db, task_id: int, **kwargs) -> None:
@@ -127,10 +168,7 @@ def process_subtitle_task(self, task_id: int):
     os.makedirs(tmp_dir, exist_ok=True)
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
-    file_handler = logging.FileHandler(log_path)
-    task_logger = logging.getLogger(f"task.{task_id}")
-    task_logger.addHandler(file_handler)
-    task_logger.setLevel(logging.INFO)
+    task_logger = _configure_task_logger(task_id=task_id, log_path=log_path)
 
     try:
         task = db.query(Task).filter(Task.id == task_id).first()
@@ -280,6 +318,5 @@ def process_subtitle_task(self, task_id: int):
         )
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
-        task_logger.removeHandler(file_handler)
-        file_handler.close()
+        _cleanup_task_logger(task_logger)
         db.close()
