@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import redis.asyncio as aioredis
 
 import models  # noqa: F401
+from api.local_files import router as local_files_router
 from api.schedules import router as schedules_router
 from api.settings import router as settings_router
 from api.smb import router as smb_router
@@ -15,6 +16,7 @@ from api.tasks import router as tasks_router
 from api.ws import broadcast_task_update, router as ws_router
 from core.config import settings
 from core.database import engine
+from core.schema_migrations import run_schema_migrations
 from models.base import Base
 
 
@@ -43,6 +45,7 @@ async def redis_subscriber():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    run_schema_migrations(engine)
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.log_dir.mkdir(parents=True, exist_ok=True)
     settings.tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -71,6 +74,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(local_files_router)
 app.include_router(smb_router)
 app.include_router(tasks_router)
 app.include_router(settings_router)

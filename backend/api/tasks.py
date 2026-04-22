@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from api.deps import get_db
@@ -11,10 +12,19 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
 @router.post("", response_model=list[TaskResponse], status_code=201)
-def create_tasks(data: TaskCreate, db: Session = Depends(get_db)):
+def create_tasks(payload: dict = Body(...), db: Session = Depends(get_db)):
+    try:
+        data = TaskCreate.model_validate(payload)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=exc.errors(include_url=False, include_context=False),
+        ) from exc
+
     tasks = []
     for file_path in data.file_paths:
         task = Task(
+            source_type=data.source_type,
             smb_server_id=data.smb_server_id,
             file_path=file_path,
             source_lang=data.source_lang,

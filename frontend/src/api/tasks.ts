@@ -2,7 +2,8 @@ import { client } from './client'
 
 export interface Task {
   id: number
-  smb_server_id: number
+  source_type: 'smb' | 'local'
+  smb_server_id: number | null
   file_path: string
   status: 'pending' | 'running' | 'done' | 'failed' | 'cancelled'
   source_lang: string
@@ -21,7 +22,8 @@ export interface Task {
 }
 
 export interface CreateTasksPayload {
-  smb_server_id: number
+  source_type: 'smb' | 'local'
+  smb_server_id?: number
   file_paths: string[]
   source_lang: string
   target_lang: string

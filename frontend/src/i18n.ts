@@ -45,6 +45,9 @@ const resources = {
       newTask: {
         title: "New Operation",
         heroDesc: "Select a storage source, assemble subtitle processing parameters, and dispatch jobs in one flow.",
+        sourceType: "Source Type",
+        sourceSMB: "SMB",
+        sourceLocal: "Local Directory",
         smbServer: "SMB Server",
         selectServer: "-- Select Server --",
         targetFiles: "Target Files",
@@ -65,7 +68,8 @@ const resources = {
         selectedIndex: "Selected Index",
         executing: "Executing...",
         commitOps: "Commit {{count}} Operations",
-        errNoFiles: "Select SMB server and at least one video file."
+        errNoFiles: "Select SMB server and at least one video file.",
+        errNoLocalFiles: "Select at least one local video file."
       },
       settings: {
         title: "System Settings",
@@ -220,6 +224,9 @@ const resources = {
       newTask: {
         title: "新建任务",
         heroDesc: "在一个工作流中完成存储源选择、字幕处理参数配置和任务投递。",
+        sourceType: "来源类型",
+        sourceSMB: "SMB",
+        sourceLocal: "本地目录",
         smbServer: "SMB 服务器",
         selectServer: "-- 选择服务器 --",
         targetFiles: "目标文件",
@@ -240,7 +247,8 @@ const resources = {
         selectedIndex: "已选清单",
         executing: "执行中...",
         commitOps: "提交 {{count}} 项任务",
-        errNoFiles: "请选择 SMB 服务器及至少一个视频文件"
+        errNoFiles: "请选择 SMB 服务器及至少一个视频文件",
+        errNoLocalFiles: "请选择至少一个本地视频文件"
       },
       settings: {
         title: "系统设置",

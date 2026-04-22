@@ -69,6 +69,7 @@ export default function TaskCard({ task }: { task: Task }) {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
+            <Badge>{task.source_type === 'local' ? 'LOCAL' : 'SMB'}</Badge>
             <Badge variant={task.status}>{t(`status.${task.status}`)}</Badge>
             {duration && (
               <span className="rounded-full border border-outline-variant px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">

@@ -1,6 +1,6 @@
 services:
   redis:
-    image: redis:7-alpine
+    image: redis:latest
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -13,6 +13,7 @@ services:
     env_file: .env
     volumes:
       - ./data:/app/data
+      - /volume2/media:/media
     depends_on:
       - redis
 
@@ -26,6 +27,7 @@ services:
     env_file: .env
     volumes:
       - ./data:/app/data
+      - /volume2/media:/media
     depends_on:
       - redis
 

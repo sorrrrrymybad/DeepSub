@@ -25,6 +25,7 @@ from worker.subtitle_extractor import (
 )
 
 logger = logging.getLogger(__name__)
+VIDEO_EXTS = {".mkv", ".mp4", ".avi", ".ts", ".mov"}
 
 
 class _TaskIdFilter(logging.Filter):
@@ -160,6 +161,67 @@ def _build_stt_engine(engine_name: str, db):
     raise ValueError(f"Unknown STT engine: {engine_name}")
 
 
+def prepare_source_video(task, db, tmp_dir: str, task_logger: logging.Logger) -> tuple[str, SMBClient | None]:
+    local_video = os.path.join(tmp_dir, "video" + Path(task.file_path).suffix)
+
+    if task.source_type == "smb":
+        from models.smb_server import SMBServer
+
+        server = db.query(SMBServer).filter(SMBServer.id == task.smb_server_id).first()
+        if not server:
+            raise ValueError("SMB server not found")
+
+        client = SMBClient.from_server_model(server)
+        task_logger.info("Downloading video from SMB...")
+        return local_video, client
+
+    source_path = Path(task.file_path)
+    if not source_path.is_absolute():
+        raise ValueError("Local file path must be absolute")
+    if not source_path.exists():
+        raise FileNotFoundError(f"Local file not found: {task.file_path}")
+    if not source_path.is_file():
+        raise ValueError(f"Local path is not a file: {task.file_path}")
+    if source_path.suffix.lower() not in VIDEO_EXTS:
+        raise ValueError(f"Unsupported local video file: {task.file_path}")
+
+    task_logger.info("Preparing local video: %s", task.file_path)
+    shutil.copy2(source_path, local_video)
+    return local_video, None
+
+
+def write_output_subtitle(task, client, tmp_dir: str, segments, task_logger: logging.Logger) -> str:
+    output_srt_name = Path(task.file_path).stem + f".{task.target_lang}.srt"
+
+    if task.source_type == "smb":
+        output_srt_remote = str(Path(task.file_path).parent / output_srt_name)
+        if not task.overwrite and client.file_exists(output_srt_remote):
+            task_logger.info(
+                "SRT already exists, skipping (overwrite=False): %s",
+                output_srt_remote,
+            )
+            return output_srt_remote
+
+        local_srt = os.path.join(tmp_dir, output_srt_name)
+        os.makedirs(os.path.dirname(local_srt), exist_ok=True)
+        segments_to_srt(segments, local_srt)
+        task_logger.info("Uploading SRT to SMB: %s", output_srt_remote)
+        client.upload_file(local_srt, output_srt_remote)
+        return output_srt_remote
+
+    output_srt_path = Path(task.file_path).with_name(output_srt_name)
+    if not task.overwrite and output_srt_path.exists():
+        task_logger.info(
+            "Local SRT already exists, skipping (overwrite=False): %s",
+            output_srt_path,
+        )
+        return str(output_srt_path)
+
+    segments_to_srt(segments, str(output_srt_path))
+    task_logger.info("Writing SRT to local path: %s", output_srt_path)
+    return str(output_srt_path)
+
+
 @celery_app.task(bind=True, max_retries=0)
 def process_subtitle_task(self, task_id: int):
     db = SessionLocal()
@@ -185,19 +247,20 @@ def process_subtitle_task(self, task_id: int):
         )
         task_logger.info("Started processing: %s", task.file_path)
 
-        from models.smb_server import SMBServer
-
-        server = db.query(SMBServer).filter(SMBServer.id == task.smb_server_id).first()
-        client = SMBClient.from_server_model(server)
-
-        local_video = os.path.join(tmp_dir, "video" + Path(task.file_path).suffix)
-        task_logger.info("Downloading video from SMB...")
-        download_progress = make_stage_progress_callback(
-            lambda progress: _update_task(db, task_id, progress=progress),
-            start=5,
-            end=20,
-        )
-        client.download_file(task.file_path, local_video, progress_callback=download_progress)
+        local_video, client = prepare_source_video(task, db, tmp_dir, task_logger)
+        if task.source_type == "smb":
+            download_progress = make_stage_progress_callback(
+                lambda progress: _update_task(db, task_id, progress=progress),
+                start=5,
+                end=20,
+            )
+            client.download_file(
+                task.file_path,
+                local_video,
+                progress_callback=download_progress,
+            )
+        else:
+            _update_task(db, task_id, progress=20)
         _update_task(db, task_id, progress=20)
 
         tracks = probe_subtitle_tracks(local_video)
@@ -279,25 +342,32 @@ def process_subtitle_task(self, task_id: int):
             segment["text"] = translated_text
         _update_task(db, task_id, progress=95)
 
-        output_srt_name = Path(task.file_path).stem + f".{task.target_lang}.srt"
-        output_srt_remote = str(Path(task.file_path).parent / output_srt_name)
-
-        if not task.overwrite and client.file_exists(output_srt_remote):
-            task_logger.info(
-                "SRT already exists, skipping (overwrite=False): %s",
-                output_srt_remote,
-            )
+        if task.source_type == "smb" and client is not None:
+            output_srt_name = Path(task.file_path).stem + f".{task.target_lang}.srt"
+            output_srt_remote = str(Path(task.file_path).parent / output_srt_name)
+            if not task.overwrite and client.file_exists(output_srt_remote):
+                task_logger.info(
+                    "SRT already exists, skipping (overwrite=False): %s",
+                    output_srt_remote,
+                )
+            else:
+                local_srt = os.path.join(tmp_dir, output_srt_name)
+                os.makedirs(os.path.dirname(local_srt), exist_ok=True)
+                segments_to_srt(segments, local_srt)
+                task_logger.info("Uploading SRT to SMB: %s", output_srt_remote)
+                upload_progress = make_stage_progress_callback(
+                    lambda progress: _update_task(db, task_id, progress=progress),
+                    start=95,
+                    end=100,
+                )
+                client.upload_file(
+                    local_srt,
+                    output_srt_remote,
+                    progress_callback=upload_progress,
+                )
         else:
-            local_srt = os.path.join(tmp_dir, output_srt_name)
-            os.makedirs(os.path.dirname(local_srt), exist_ok=True)
-            segments_to_srt(segments, local_srt)
-            task_logger.info("Uploading SRT to SMB: %s", output_srt_remote)
-            upload_progress = make_stage_progress_callback(
-                lambda progress: _update_task(db, task_id, progress=progress),
-                start=95,
-                end=100,
-            )
-            client.upload_file(local_srt, output_srt_remote, progress_callback=upload_progress)
+            write_output_subtitle(task, client, tmp_dir, segments, task_logger)
+            _update_task(db, task_id, progress=100)
 
         _update_task(
             db,

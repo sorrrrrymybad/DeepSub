@@ -166,3 +166,45 @@ docker compose restart redis
 - `redis`：任务队列与实时消息依赖
 
 前端对外暴露的宿主机端口由 `.env` 中的 `FRONTEND_PORT` 控制，容器内固定监听 `80`。
+
+## 本地目录视频来源
+
+除 SMB 来源外，DeepSub 现在也支持直接浏览容器内本地目录中的视频文件并创建翻译任务。
+
+这个功能依赖 Docker 挂载。你需要把宿主机视频目录同时挂载到 `backend` 和 `worker`，并且两边使用相同的容器路径。
+
+例如把宿主机 `/data/videos` 挂载到容器 `/mnt/videos`：
+
+```yaml
+services:
+  backend:
+    volumes:
+      - ./data:/app/data
+      - /data/videos:/mnt/videos
+
+  worker:
+    volumes:
+      - ./data:/app/data
+      - /data/videos:/mnt/videos
+```
+
+说明：
+
+- `backend` 需要这份挂载来浏览目录并创建任务
+- `worker` 需要这份挂载来实际读取视频和写回字幕
+- 两个服务里的容器路径必须一致，例如都使用 `/mnt/videos`
+- 如果只挂载到 `backend`，页面能看到文件，但任务执行会失败
+- 如果目标目录没有写权限，本地来源任务无法写回 `*.srt`
+
+任务完成后，字幕会直接写回原视频所在目录，文件名格式为：
+
+```text
+原文件名.<目标语言>.srt
+```
+
+例如：
+
+```text
+/mnt/videos/demo/movie.mp4
+-> /mnt/videos/demo/movie.zh.srt
+```
