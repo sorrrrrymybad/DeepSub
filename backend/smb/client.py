@@ -85,24 +85,41 @@ class SMBClient:
             )
         return entries
 
-    def download_file(self, remote_path: str, local_path: str) -> None:
+    def download_file(self, remote_path: str, local_path: str, progress_callback=None) -> None:
         self._ensure_connected()
         import smbclient
 
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
-        with smbclient.open_file(self._smb_path(remote_path), mode="rb", **self._auth_kwargs()) as src:
+        remote_file = self._smb_path(remote_path)
+        total_size = smbclient.stat(remote_file, **self._auth_kwargs()).st_size
+        read_size = 0
+
+        with smbclient.open_file(remote_file, mode="rb", **self._auth_kwargs()) as src:
             with open(local_path, "wb") as dst:
+                if progress_callback:
+                    progress_callback(1.0 if total_size == 0 else 0.0)
                 while chunk := src.read(1024 * 1024):
                     dst.write(chunk)
+                    read_size += len(chunk)
+                    if progress_callback and total_size > 0:
+                        progress_callback(read_size / total_size)
 
-    def upload_file(self, local_path: str, remote_path: str) -> None:
+    def upload_file(self, local_path: str, remote_path: str, progress_callback=None) -> None:
         self._ensure_connected()
         import smbclient
 
+        total_size = os.path.getsize(local_path)
+        written_size = 0
+
         with open(local_path, "rb") as src:
             with smbclient.open_file(self._smb_path(remote_path), mode="wb", **self._auth_kwargs()) as dst:
+                if progress_callback:
+                    progress_callback(1.0 if total_size == 0 else 0.0)
                 while chunk := src.read(1024 * 1024):
                     dst.write(chunk)
+                    written_size += len(chunk)
+                    if progress_callback and total_size > 0:
+                        progress_callback(written_size / total_size)
 
     def file_exists(self, remote_path: str) -> bool:
         self._ensure_connected()

@@ -15,6 +15,7 @@ from core.config import settings
 from core.database import SessionLocal
 from models.task import Task
 from smb.client import SMBClient
+from worker.progress import make_stage_progress_callback
 from worker.srt_writer import segments_to_srt
 from worker.subtitle_extractor import (
     extract_subtitle_track,
@@ -153,7 +154,12 @@ def process_subtitle_task(self, task_id: int):
 
         local_video = os.path.join(tmp_dir, "video" + Path(task.file_path).suffix)
         task_logger.info("Downloading video from SMB...")
-        client.download_file(task.file_path, local_video)
+        download_progress = make_stage_progress_callback(
+            lambda progress: _update_task(db, task_id, progress=progress),
+            start=5,
+            end=20,
+        )
+        client.download_file(task.file_path, local_video, progress_callback=download_progress)
         _update_task(db, task_id, progress=20)
 
         tracks = probe_subtitle_tracks(local_video)
@@ -200,9 +206,11 @@ def process_subtitle_task(self, task_id: int):
             stt_engine = _build_stt_engine(task.stt_engine, db)
             language = task.source_lang if task.source_lang != "auto" else None
 
-            def stt_progress(ratio: float):
-                # STT 阶段占进度 40-60
-                _update_task(db, task_id, progress=int(40 + ratio * 20))
+            stt_progress = make_stage_progress_callback(
+                lambda progress: _update_task(db, task_id, progress=progress),
+                start=40,
+                end=60,
+            )
 
             segments = stt_engine.transcribe(audio_path, language=language, progress_callback=stt_progress)
 
@@ -216,9 +224,11 @@ def process_subtitle_task(self, task_id: int):
             batch_size = int(_batch_setting.value) if _batch_setting else 1
         except (ValueError, TypeError):
             batch_size = 1
-        def translate_progress(ratio: float):
-            # 翻译阶段占进度 60-85
-            _update_task(db, task_id, progress=int(60 + ratio * 25))
+        translate_progress = make_stage_progress_callback(
+            lambda progress: _update_task(db, task_id, progress=progress),
+            start=60,
+            end=95,
+        )
 
         translated = translator.translate_batch(
             [segment["text"] for segment in segments],
@@ -229,7 +239,7 @@ def process_subtitle_task(self, task_id: int):
         )
         for segment, translated_text in zip(segments, translated):
             segment["text"] = translated_text
-        _update_task(db, task_id, progress=85)
+        _update_task(db, task_id, progress=95)
 
         output_srt_name = Path(task.file_path).stem + f".{task.target_lang}.srt"
         output_srt_remote = str(Path(task.file_path).parent / output_srt_name)
@@ -244,7 +254,12 @@ def process_subtitle_task(self, task_id: int):
             os.makedirs(os.path.dirname(local_srt), exist_ok=True)
             segments_to_srt(segments, local_srt)
             task_logger.info("Uploading SRT to SMB: %s", output_srt_remote)
-            client.upload_file(local_srt, output_srt_remote)
+            upload_progress = make_stage_progress_callback(
+                lambda progress: _update_task(db, task_id, progress=progress),
+                start=95,
+                end=100,
+            )
+            client.upload_file(local_srt, output_srt_remote, progress_callback=upload_progress)
 
         _update_task(
             db,
