@@ -35,24 +35,41 @@ def main():
 
     base_cmd = [sys.executable, "-m", "celery", "-A", "celery_app"]
 
+    # 低内存模式：worker + beat 合并为单进程，线程池替代 prefork，定期回收释放 Whisper 模型
     worker_proc = subprocess.Popen(
-        base_cmd + ["worker", "--loglevel=info", f"--concurrency={concurrency}"],
+        base_cmd + [
+            "worker",
+            "-B",
+            "--pool=threads",
+            f"--concurrency={concurrency}",
+            "--max-tasks-per-child=10",
+            "--loglevel=info",
+        ],
         cwd=os.path.dirname(__file__),
     )
-    beat_proc = subprocess.Popen(
-        base_cmd + ["beat", "--loglevel=info"],
-        cwd=os.path.dirname(__file__),
-    )
+    beat_proc = None
+
+    # 旧的启动方式：worker 和 beat 各自一个进程，worker 使用默认 prefork 池
+    # worker_proc = subprocess.Popen(
+    #     base_cmd + ["worker", "--loglevel=info", f"--concurrency={concurrency}"],
+    #     cwd=os.path.dirname(__file__),
+    # )
+    # beat_proc = subprocess.Popen(
+    #     base_cmd + ["beat", "--loglevel=info"],
+    #     cwd=os.path.dirname(__file__),
+    # )
 
     def shutdown(signum, frame):
         worker_proc.terminate()
-        beat_proc.terminate()
+        if beat_proc is not None:
+            beat_proc.terminate()
 
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
 
     worker_proc.wait()
-    beat_proc.wait()
+    if beat_proc is not None:
+        beat_proc.wait()
 
 
 if __name__ == "__main__":
