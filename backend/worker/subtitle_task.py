@@ -38,8 +38,8 @@ class _TaskIdFilter(logging.Filter):
         return True
 
 
-def _get_log_path(task_id: int) -> str:
-    return str(settings.log_dir / f"{task_id}.log")
+def _get_log_dir(task_id: int) -> Path:
+    return settings.log_dir / str(task_id)
 
 
 def _get_tmp_dir(task_id: int) -> str:
@@ -225,12 +225,13 @@ def write_output_subtitle(task, client, tmp_dir: str, segments, task_logger: log
 @celery_app.task(bind=True, max_retries=0)
 def process_subtitle_task(self, task_id: int):
     db = SessionLocal()
-    log_path = _get_log_path(task_id)
+    log_dir = _get_log_dir(task_id)
     tmp_dir = _get_tmp_dir(task_id)
     os.makedirs(tmp_dir, exist_ok=True)
-    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / "task.log"
 
-    task_logger = _configure_task_logger(task_id=task_id, log_path=log_path)
+    task_logger = _configure_task_logger(task_id=task_id, log_path=str(log_path))
 
     try:
         task = db.query(Task).filter(Task.id == task_id).first()
@@ -315,6 +316,11 @@ def process_subtitle_task(self, task_id: int):
 
             segments = stt_engine.transcribe(audio_path, language=language, progress_callback=stt_progress)
 
+        try:
+            segments_to_srt(segments, str(log_dir / "source.srt"))
+        except Exception as exc:
+            task_logger.warning("Failed to write source.srt: %s", exc)
+
         task_logger.info("Got %s segments, starting translation...", len(segments))
         _update_task(db, task_id, progress=60)
 
@@ -331,13 +337,49 @@ def process_subtitle_task(self, task_id: int):
             end=95,
         )
 
+        jsonl_path = log_dir / "translate.jsonl"
+        try:
+            jsonl_path.unlink()
+        except FileNotFoundError:
+            pass
+        batch_state = {"index": 0, "offset": 0}
+
+        def batch_callback(inputs: list[str], outputs: list[str]) -> None:
+            start = batch_state["offset"]
+            end = start + len(inputs)
+            record = {
+                "batch_index": batch_state["index"],
+                "segment_range": [start, end],
+                "inputs": inputs,
+                "outputs": outputs,
+            }
+            try:
+                with open(jsonl_path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            except Exception as exc:
+                task_logger.warning("Failed to append translate.jsonl: %s", exc)
+            batch_state["index"] += 1
+            batch_state["offset"] = end
+
+        originals = [segment["text"] for segment in segments]
         translated = translator.translate_batch(
-            [segment["text"] for segment in segments],
+            originals,
             source_lang=task.source_lang,
             target_lang=task.target_lang,
             batch_size=batch_size,
             progress_callback=translate_progress,
+            batch_callback=batch_callback,
         )
+
+        try:
+            bilingual_segments = [
+                {**seg, "text": f"{orig}\n{tr}" if tr else orig}
+                for seg, orig, tr in zip(segments, originals, translated)
+            ]
+            segments_to_srt(bilingual_segments, str(log_dir / "bilingual.srt"))
+        except Exception as exc:
+            task_logger.warning("Failed to write bilingual.srt: %s", exc)
+
         for segment, translated_text in zip(segments, translated):
             segment["text"] = translated_text
         _update_task(db, task_id, progress=95)

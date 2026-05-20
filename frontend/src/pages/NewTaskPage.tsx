@@ -22,7 +22,7 @@ export default function NewTaskPage() {
   const [sourceLang, setSourceLang] = useState('auto')
   const [targetLang, setTargetLang] = useState('zh')
   const [sttEngine, setSttEngine] = useState('whisper_local')
-  const [translateEngine, setTranslateEngine] = useState('deeplx')
+  const [translateEngine, setTranslateEngine] = useState('openai')
   const [overwrite, setOverwrite] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -32,10 +32,10 @@ export default function NewTaskPage() {
   ]
 
   const TRANSLATE_ENGINES = [
+    { value: 'openai', label: t('newTaskPage.engineOpenai') },
     { value: 'deeplx', label: t('newTaskPage.engineDeeplx') },
     { value: 'deepl', label: t('newTaskPage.engineDeepl') },
     { value: 'google', label: t('newTaskPage.engineGoogle') },
-    { value: 'openai', label: t('newTaskPage.engineOpenai') },
     { value: 'claude', label: t('newTaskPage.engineClaude') },
   ]
 

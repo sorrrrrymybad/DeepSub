@@ -119,9 +119,14 @@ def remove_task(task_id: int, db: Session = Depends(get_db)):
     db.delete(task)
     db.commit()
 
-    log_path = app_settings.log_dir / f"{task_id}.log"
+    log_dir = app_settings.log_dir / str(task_id)
+    legacy_log = app_settings.log_dir / f"{task_id}.log"
     try:
-        log_path.unlink(missing_ok=True)
+        if log_dir.exists():
+            import shutil
+
+            shutil.rmtree(log_dir, ignore_errors=True)
+        legacy_log.unlink(missing_ok=True)
     except Exception:
         pass
 
@@ -151,7 +156,11 @@ def retry_task(task_id: int, db: Session = Depends(get_db)):
 def stream_logs(task_id: int):
     from core.config import settings
 
-    log_path = settings.log_dir / f"{task_id}.log"
+    log_path = settings.log_dir / str(task_id) / "task.log"
+    if not log_path.exists():
+        legacy = settings.log_dir / f"{task_id}.log"
+        if legacy.exists():
+            log_path = legacy
 
     def generate():
         if log_path.exists():

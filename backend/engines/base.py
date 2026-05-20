@@ -13,6 +13,7 @@ class TranslateEngine(ABC):
         target_lang: str,
         batch_size: int = 1,
         progress_callback=None,
+        batch_callback=None,
     ) -> list[str]:
         # Strip inline newlines from each segment before translation
         cleaned = [t.replace("\n", " ").strip() for t in texts]
@@ -21,7 +22,10 @@ class TranslateEngine(ABC):
         if batch_size <= 1:
             results = []
             for idx, text in enumerate(cleaned):
-                results.append(self.translate(text, source_lang=source_lang, target_lang=target_lang))
+                result = self.translate(text, source_lang=source_lang, target_lang=target_lang)
+                results.append(result)
+                if batch_callback:
+                    batch_callback([text], [result])
                 if progress_callback:
                     progress_callback((idx + 1) / total)
             return results
@@ -35,7 +39,10 @@ class TranslateEngine(ABC):
             # Pad or trim to match chunk length in case the model returns different line counts
             if len(parts) < len(chunk):
                 parts += [""] * (len(chunk) - len(parts))
-            results.extend(parts[: len(chunk)])
+            chunk_outputs = parts[: len(chunk)]
+            results.extend(chunk_outputs)
+            if batch_callback:
+                batch_callback(chunk, chunk_outputs)
             if progress_callback:
                 progress_callback(min(i + len(chunk), total) / total)
         return results
