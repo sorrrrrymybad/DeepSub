@@ -77,22 +77,72 @@ class OpenAITranslateEngine(TranslateEngine):
     ) -> list[str]:
         cleaned = [t.replace("\n", " ").strip() for t in texts]
         total = len(cleaned)
-        results: list[str] = []
+        if total == 0:
+            return []
 
-        for idx, text in enumerate(cleaned):
-            context_texts = cleaned[max(0, idx - CONTEXT_WINDOW_SIZE) : idx]
-            result = self._translate_with_context(
-                text,
+        if batch_size <= 1:
+            results: list[str] = []
+            for idx, text in enumerate(cleaned):
+                context_texts = cleaned[max(0, idx - CONTEXT_WINDOW_SIZE) : idx]
+                result = self._translate_with_context(
+                    text,
+                    source_lang=source_lang,
+                    target_lang=target_lang,
+                    context_texts=context_texts,
+                )
+                results.append(result)
+                if batch_callback:
+                    batch_callback([text], [result])
+                if progress_callback:
+                    progress_callback((idx + 1) / total)
+            return results
+
+        results: list[str] = []
+        for start in range(0, total, batch_size):
+            chunk = cleaned[start : start + batch_size]
+            context_texts = cleaned[max(0, start - CONTEXT_WINDOW_SIZE) : start]
+            translated = self._translate_batch_chunk(
+                chunk,
                 source_lang=source_lang,
                 target_lang=target_lang,
                 context_texts=context_texts,
             )
-            results.append(result)
+            results.extend(translated)
             if batch_callback:
-                batch_callback([text], [result])
-            if progress_callback and total:
-                progress_callback((idx + 1) / total)
+                batch_callback(chunk, translated)
+            if progress_callback:
+                progress_callback(min(start + len(chunk), total) / total)
         return results
+
+    def _translate_batch_chunk(
+        self,
+        texts: list[str],
+        source_lang: str,
+        target_lang: str,
+        context_texts: list[str] | None = None,
+    ) -> list[str]:
+        if not texts:
+            return []
+        if len(texts) == 1:
+            return [
+                self._translate_with_context(
+                    texts[0],
+                    source_lang=source_lang,
+                    target_lang=target_lang,
+                    context_texts=context_texts,
+                )
+            ]
+
+        translated = self._translate_with_context(
+            "\n".join(texts),
+            source_lang=source_lang,
+            target_lang=target_lang,
+            context_texts=context_texts,
+        )
+        parts = translated.split("\n")
+        if len(parts) < len(texts):
+            parts += [""] * (len(texts) - len(parts))
+        return parts[: len(texts)]
 
     def _build_input_text(self, text: str, context_texts: list[str] | None = None) -> str:
         if not context_texts:
