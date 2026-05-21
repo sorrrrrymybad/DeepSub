@@ -6,6 +6,7 @@ from openai import OpenAI
 from engines.base import TranslateEngine
 
 logger = logging.getLogger(__name__)
+CONTEXT_WINDOW_SIZE = 10
 
 DEFAULT_TRANSLATE_PROMPT = (
     "You are a professional subtitle translator. "
@@ -27,48 +28,92 @@ class OpenAITranslateEngine(TranslateEngine):
         self.prompt_template = prompt_template or DEFAULT_TRANSLATE_PROMPT
 
     def translate(self, text: str, source_lang: str, target_lang: str) -> str:
+        return self._translate_with_context(
+            text,
+            source_lang=source_lang,
+            target_lang=target_lang,
+            context_texts=None,
+        )
+
+    def _translate_with_context(
+        self,
+        text: str,
+        source_lang: str,
+        target_lang: str,
+        context_texts: list[str] | None = None,
+    ) -> str:
         if not text.strip():
             return ""
 
         effective_source = "auto-detected language" if source_lang.lower() == "auto" else source_lang
-        system_prompt = self.prompt_template.format(
+        instructions = self.prompt_template.format(
             source_lang=effective_source, target_lang=target_lang
         )
+        input_text = self._build_input_text(text, context_texts)
         request_payload = {
             "model": self.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text},
-            ],
+            "instructions": instructions,
+            "input": input_text,
             "temperature": 0.3,
         }
         # logger.info("[OpenAI] base_url=%s model=%s", self.client.base_url, self.model)
         # logger.info("[OpenAI] request payload: %s", request_payload)
         try:
-            response = self.client.chat.completions.create(**request_payload)
+            response = self.client.responses.create(**request_payload)
             # logger.info("[OpenAI] response: %s", response)
             return self._extract_text(response)
         except Exception as e:
             logger.error("[OpenAI] error: %s", e)
             raise
 
-    def _extract_text(self, response: Any) -> str:
-        choices = getattr(response, "choices", None) or []
-        if not choices:
-            raise ValueError("OpenAI returned no choices for translation request")
+    def translate_batch(
+        self,
+        texts: list[str],
+        source_lang: str,
+        target_lang: str,
+        batch_size: int = 1,
+        progress_callback=None,
+        batch_callback=None,
+    ) -> list[str]:
+        cleaned = [t.replace("\n", " ").strip() for t in texts]
+        total = len(cleaned)
+        results: list[str] = []
 
-        choice = choices[0]
-        message = getattr(choice, "message", None)
-        if message is None:
-            raise ValueError("OpenAI returned no message for translation request")
+        for idx, text in enumerate(cleaned):
+            context_texts = cleaned[max(0, idx - CONTEXT_WINDOW_SIZE) : idx]
+            result = self._translate_with_context(
+                text,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                context_texts=context_texts,
+            )
+            results.append(result)
+            if batch_callback:
+                batch_callback([text], [result])
+            if progress_callback and total:
+                progress_callback((idx + 1) / total)
+        return results
 
-        content = getattr(message, "content", None)
-        if isinstance(content, str):
-            return content.strip()
-
-        finish_reason = getattr(choice, "finish_reason", None)
-        refusal = getattr(message, "refusal", None)
-        raise ValueError(
-            "OpenAI returned no text content for translation "
-            f"(finish_reason={finish_reason}, refusal={refusal})"
+    def _build_input_text(self, text: str, context_texts: list[str] | None = None) -> str:
+        if not context_texts:
+            return f"Current subtitle to translate:\n{text}"
+        context = "\n".join(context_texts)
+        return (
+            "Previous subtitles for context only. Do not translate them:\n"
+            f"{context}\n\n"
+            "Current subtitle to translate:\n"
+            f"{text}"
         )
+
+    def _extract_text(self, response: Any) -> str:
+        output_text = getattr(response, "output_text", None)
+        if isinstance(output_text, str) and output_text.strip():
+            return output_text.strip()
+
+        for item in getattr(response, "output", None) or []:
+            for content in getattr(item, "content", None) or []:
+                text = getattr(content, "text", None)
+                if isinstance(text, str) and text.strip():
+                    return text.strip()
+
+        raise ValueError("OpenAI returned no text output for translation request")
