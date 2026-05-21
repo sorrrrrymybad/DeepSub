@@ -1,10 +1,27 @@
 from fastapi import APIRouter, Depends, Query
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from api.deps import get_db
 from core.crypto import encrypt, mask_secret
+from core.translation_profiles import (
+    create_translation_profile,
+    delete_translation_profile,
+    get_active_translation_profile,
+    get_active_translation_profile_id,
+    get_translation_profile,
+    list_translation_profiles,
+    set_active_translation_profile,
+    update_translation_profile,
+)
 from models.setting import Setting
-from schemas.setting import STTSettingsUpdate, SystemSettingsUpdate, TranslateSettingsUpdate
+from schemas.setting import (
+    STTSettingsUpdate,
+    SystemSettingsUpdate,
+    TranslateProfileCreate,
+    TranslateProfileUpdate,
+    TranslateSettingsUpdate,
+)
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -72,16 +89,37 @@ def get_translate_settings(db: Session = Depends(get_db)):
         ("deeplx_endpoint", "translate.deeplx.endpoint"),
         ("deepl_api_key", "translate.deepl.api_key"),
         ("google_api_key", "translate.google.api_key"),
-        ("openai_api_key", "translate.openai.api_key"),
-        ("openai_model", "translate.openai.model"),
-        ("openai_base_url", "translate.openai.base_url"),
-        ("claude_api_key", "translate.claude.api_key"),
-        ("claude_model", "translate.claude.model"),
-        ("claude_base_url", "translate.claude.base_url"),
         ("batch_size", "translate.batch_size"),
         ("translate_prompt", "translate.prompt"),
     ]
-    return {field: _get_val(db, key) for field, key in keys}
+    data = {field: _get_val(db, key) for field, key in keys}
+    data["openai_profiles"] = list_translation_profiles(db, "openai")
+    data["claude_profiles"] = list_translation_profiles(db, "claude")
+    active_openai = get_active_translation_profile_id(db, "openai")
+    active_claude = get_active_translation_profile_id(db, "claude")
+    data["openai_active_profile_id"] = active_openai
+    data["claude_active_profile_id"] = active_claude
+    if active_openai is not None:
+        openai_profile = next(
+            (profile for profile in data["openai_profiles"] if profile["id"] == active_openai),
+            None,
+        )
+        data["openai_active_profile"] = openai_profile
+        if openai_profile:
+            data["openai_api_key"] = openai_profile["api_key_masked"]
+            data["openai_model"] = openai_profile["model"]
+            data["openai_base_url"] = openai_profile["base_url"]
+    if active_claude is not None:
+        claude_profile = next(
+            (profile for profile in data["claude_profiles"] if profile["id"] == active_claude),
+            None,
+        )
+        data["claude_active_profile"] = claude_profile
+        if claude_profile:
+            data["claude_api_key"] = claude_profile["api_key_masked"]
+            data["claude_model"] = claude_profile["model"]
+            data["claude_base_url"] = claude_profile["base_url"]
+    return data
 
 
 @router.patch("/translate")
@@ -92,12 +130,6 @@ def update_translate_settings(
         "deeplx_endpoint": "translate.deeplx.endpoint",
         "deepl_api_key": "translate.deepl.api_key",
         "google_api_key": "translate.google.api_key",
-        "openai_api_key": "translate.openai.api_key",
-        "openai_model": "translate.openai.model",
-        "openai_base_url": "translate.openai.base_url",
-        "claude_api_key": "translate.claude.api_key",
-        "claude_model": "translate.claude.model",
-        "claude_base_url": "translate.claude.base_url",
         "batch_size": "translate.batch_size",
         "translate_prompt": "translate.prompt",
     }
@@ -105,8 +137,115 @@ def update_translate_settings(
         value = getattr(data, field)
         if value is not None:
             _upsert(db, key, value)
+
+    for provider, prefix in (("openai", "translate.openai"), ("claude", "translate.claude")):
+        profile = get_active_translation_profile(db, provider)
+        if not profile:
+            continue
+        profile_update = {}
+        if getattr(data, f"{provider}_api_key", None) is not None:
+            profile_update["api_key"] = getattr(data, f"{provider}_api_key")
+        if getattr(data, f"{provider}_model", None) is not None:
+            profile_update["model"] = getattr(data, f"{provider}_model")
+        if getattr(data, f"{provider}_base_url", None) is not None:
+            profile_update["base_url"] = getattr(data, f"{provider}_base_url")
+        if profile_update:
+            db_profile = get_translation_profile(db, profile["id"])
+            if db_profile:
+                update_translation_profile(db, db_profile, **profile_update)
     db.commit()
     return {"ok": True}
+
+
+@router.get("/translate/providers/{provider}/profiles")
+def get_translate_provider_profiles(provider: str, db: Session = Depends(get_db)):
+    if provider not in {"openai", "claude"}:
+        raise HTTPException(status_code=404, detail="Unknown provider")
+    return {
+        "profiles": list_translation_profiles(db, provider),
+        "active_profile_id": get_active_translation_profile_id(db, provider),
+        "active_profile": get_active_translation_profile(db, provider),
+    }
+
+
+@router.post("/translate/providers/{provider}/profiles")
+def create_translate_provider_profile(
+    provider: str,
+    data: TranslateProfileCreate,
+    db: Session = Depends(get_db),
+):
+    if provider not in {"openai", "claude"}:
+        raise HTTPException(status_code=404, detail="Unknown provider")
+    profile = create_translation_profile(
+        db,
+        provider=provider,
+        name=data.name,
+        api_key=data.api_key,
+        model=data.model,
+        base_url=data.base_url,
+    )
+    db.commit()
+    db.refresh(profile)
+    created = next(
+        (item for item in list_translation_profiles(db, provider) if item["id"] == profile.id),
+        None,
+    )
+    return {"profile": created}
+
+
+@router.patch("/translate/providers/{provider}/profiles/{profile_id}")
+def update_translate_provider_profile(
+    provider: str,
+    profile_id: int,
+    data: TranslateProfileUpdate,
+    db: Session = Depends(get_db),
+):
+    profile = get_translation_profile(db, profile_id)
+    if not profile or profile.provider != provider:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    update_translation_profile(
+        db,
+        profile,
+        name=data.name,
+        api_key=data.api_key,
+        model=data.model,
+        base_url=data.base_url,
+    )
+    db.commit()
+    db.refresh(profile)
+    updated = next(
+        (item for item in list_translation_profiles(db, provider) if item["id"] == profile.id),
+        None,
+    )
+    return {"profile": updated}
+
+
+@router.delete("/translate/providers/{provider}/profiles/{profile_id}")
+def delete_translate_provider_profile(
+    provider: str,
+    profile_id: int,
+    db: Session = Depends(get_db),
+):
+    profile = get_translation_profile(db, profile_id)
+    if not profile or profile.provider != provider:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    delete_translation_profile(db, profile)
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/translate/providers/{provider}/active/{profile_id}")
+def set_translate_provider_active_profile(
+    provider: str,
+    profile_id: int,
+    db: Session = Depends(get_db),
+):
+    profile = get_translation_profile(db, profile_id)
+    if not profile or profile.provider != provider:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    set_active_translation_profile(db, provider, profile_id)
+    db.commit()
+    return {"ok": True, "active_profile_id": profile_id}
 
 
 @router.get("/system")

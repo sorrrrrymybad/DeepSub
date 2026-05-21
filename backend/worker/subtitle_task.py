@@ -94,6 +94,7 @@ def _update_task(db, task_id: int, **kwargs) -> None:
 
 def _build_translate_engine(engine_name: str, db):
     from core.crypto import decrypt
+    from core.translation_profiles import get_active_translation_profile
     from engines.translate.deepl import DeepLEngine
     from engines.translate.deeplx import DeepLXEngine
     from engines.translate.google import GoogleTranslateEngine
@@ -118,6 +119,14 @@ def _build_translate_engine(engine_name: str, db):
     if engine_name == "google":
         return GoogleTranslateEngine(api_key=get_setting("translate.google.api_key"))
     if engine_name == "openai":
+        profile = get_active_translation_profile(db, "openai")
+        if profile:
+            return OpenAITranslateEngine(
+                api_key=profile["api_key"],
+                model=profile["model"] or "gpt-4o-mini",
+                base_url=profile["base_url"] or None,
+                prompt_template=get_setting("translate.prompt") or None,
+            )
         return OpenAITranslateEngine(
             api_key=get_setting("translate.openai.api_key"),
             model=get_setting("translate.openai.model") or "gpt-4o-mini",
@@ -126,6 +135,14 @@ def _build_translate_engine(engine_name: str, db):
         )
     if engine_name == "claude":
         from engines.translate.claude_translate import ClaudeTranslateEngine
+        profile = get_active_translation_profile(db, "claude")
+        if profile:
+            return ClaudeTranslateEngine(
+                api_key=profile["api_key"],
+                model=profile["model"] or "claude-haiku-4-5-20251001",
+                base_url=profile["base_url"] or None,
+                prompt_template=get_setting("translate.prompt") or None,
+            )
         return ClaudeTranslateEngine(
             api_key=get_setting("translate.claude.api_key"),
             model=get_setting("translate.claude.model") or "claude-haiku-4-5-20251001",

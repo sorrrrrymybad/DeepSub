@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import sessionmaker
+
+from core.translation_profiles import seed_legacy_translation_profiles
 
 
 def run_schema_migrations(engine: Engine) -> None:
     if engine.dialect.name == "sqlite":
         _ensure_sqlite_tasks_table_supports_source_types(engine)
+        _ensure_translation_profiles_table(engine)
 
 
 def _ensure_sqlite_tasks_table_supports_source_types(engine: Engine) -> None:
@@ -99,3 +103,39 @@ def _ensure_sqlite_tasks_table_supports_source_types(engine: Engine) -> None:
         )
         conn.execute(text("DROP TABLE tasks"))
         conn.execute(text("ALTER TABLE tasks_new RENAME TO tasks"))
+
+
+def _ensure_translation_profiles_table(engine: Engine) -> None:
+    inspector = inspect(engine)
+    if "translation_profiles" not in inspector.get_table_names():
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE translation_profiles (
+                        id INTEGER PRIMARY KEY,
+                        provider VARCHAR NOT NULL,
+                        name VARCHAR NOT NULL,
+                        api_key VARCHAR NOT NULL,
+                        model VARCHAR NOT NULL,
+                        base_url VARCHAR,
+                        created_at DATETIME,
+                        updated_at DATETIME,
+                        UNIQUE(provider, name)
+                    )
+                    """
+                )
+            )
+
+    from models.base import Base
+    from models.setting import Setting
+    from models.translation_profile import TranslationProfile
+
+    Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = Session()
+    try:
+        Base.metadata.create_all(bind=engine, tables=[Setting.__table__, TranslationProfile.__table__])
+        seed_legacy_translation_profiles(db)
+        db.commit()
+    finally:
+        db.close()

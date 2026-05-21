@@ -17,11 +17,19 @@ class TranslateSettingsUpdate(BaseModel):
     deeplx_endpoint: str | None = None
     deepl_api_key: str | None = None
     google_api_key: str | None = None
-    openai_api_key: str | None = None
-    openai_model: str | None = None
-    openai_base_url: str | None = None
-    claude_api_key: str | None = None
-    claude_model: str | None = None
-    claude_base_url: str | None = None
     batch_size: str | None = None
     translate_prompt: str | None = None
+
+
+class TranslateProfileCreate(BaseModel):
+    name: str
+    api_key: str
+    model: str
+    base_url: str | None = None
+
+
+class TranslateProfileUpdate(BaseModel):
+    name: str | None = None
+    api_key: str | None = None
+    model: str | None = None
+    base_url: str | None = None
