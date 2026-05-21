@@ -26,6 +26,8 @@ from worker.subtitle_extractor import (
 
 logger = logging.getLogger(__name__)
 VIDEO_EXTS = {".mkv", ".mp4", ".avi", ".ts", ".mov"}
+WHISPER_RAW_CACHE = "source_whisper.json"
+WHISPER_SEGMENTS_CACHE = "source_segments.json"
 
 
 class _TaskIdFilter(logging.Filter):
@@ -178,6 +180,73 @@ def _build_stt_engine(engine_name: str, db):
     raise ValueError(f"Unknown STT engine: {engine_name}")
 
 
+def load_cached_whisper_result(log_dir: str | Path) -> list[dict] | None:
+    segments_path = Path(log_dir) / WHISPER_SEGMENTS_CACHE
+    if not segments_path.exists():
+        return None
+
+    with open(segments_path, "r", encoding="utf-8") as f:
+        segments = json.load(f)
+
+    if not isinstance(segments, list):
+        raise ValueError("Cached Whisper segments must be a list")
+    return segments
+
+
+def save_whisper_result(log_dir: str | Path, segments: list[dict]) -> None:
+    log_path = Path(log_dir)
+    log_path.mkdir(parents=True, exist_ok=True)
+    raw_result = {
+        "text": "\n".join(segment.get("text", "") for segment in segments),
+        "segments": segments,
+    }
+    with open(log_path / WHISPER_RAW_CACHE, "w", encoding="utf-8") as f:
+        json.dump(raw_result, f, ensure_ascii=False, indent=2)
+    with open(log_path / WHISPER_SEGMENTS_CACHE, "w", encoding="utf-8") as f:
+        json.dump(segments, f, ensure_ascii=False, indent=2)
+
+
+def get_or_transcribe_segments(
+    task,
+    db,
+    audio_path: str,
+    log_dir: str | Path,
+    task_id: int,
+    task_logger: logging.Logger,
+    progress_callback=None,
+) -> list[dict]:
+    cached_segments = load_cached_whisper_result(log_dir)
+    if cached_segments is not None:
+        task_logger.info(
+            "Using cached Whisper result for task %s (%s segments)",
+            task_id,
+            len(cached_segments),
+        )
+        return cached_segments
+
+    stt_engine = _build_stt_engine(task.stt_engine, db)
+    language = task.source_lang if task.source_lang != "auto" else None
+    segments = stt_engine.transcribe(
+        audio_path,
+        language=language,
+        progress_callback=progress_callback,
+    )
+    save_whisper_result(log_dir, segments)
+    return segments
+
+
+def prepare_smb_output_client(task, db) -> SMBClient | None:
+    if task.source_type != "smb":
+        return None
+
+    from models.smb_server import SMBServer
+
+    server = db.query(SMBServer).filter(SMBServer.id == task.smb_server_id).first()
+    if not server:
+        raise ValueError("SMB server not found")
+    return SMBClient.from_server_model(server)
+
+
 def prepare_source_video(task, db, tmp_dir: str, task_logger: logging.Logger) -> tuple[str, SMBClient | None]:
     local_video = os.path.join(tmp_dir, "video" + Path(task.file_path).suffix)
 
@@ -265,73 +334,86 @@ def process_subtitle_task(self, task_id: int):
         )
         task_logger.info("Started processing: %s", task.file_path)
 
-        local_video, client = prepare_source_video(task, db, tmp_dir, task_logger)
-        if task.source_type == "smb":
-            download_progress = make_stage_progress_callback(
-                lambda progress: _update_task(db, task_id, progress=progress),
-                start=5,
-                end=20,
-            )
-            client.download_file(
-                task.file_path,
-                local_video,
-                progress_callback=download_progress,
-            )
-        else:
-            _update_task(db, task_id, progress=20)
-        _update_task(db, task_id, progress=20)
-
-        tracks = probe_subtitle_tracks(local_video)
-        task_logger.info("Found %s subtitle track(s)", len(tracks))
-
-        if tracks:
-            best = select_best_track(tracks, task.source_lang)
-            extracted_srt = os.path.join(tmp_dir, "extracted.srt")
+        cached_segments = load_cached_whisper_result(log_dir)
+        if cached_segments is not None:
             task_logger.info(
-                "Extracting track index=%s, lang=%s", best.index, best.language
+                "Cached Whisper result found, skipping source preparation and STT."
             )
-            extract_subtitle_track(local_video, best.index, extracted_srt)
-            _update_task(db, task_id, progress=40)
-            subs = pysrt.open(extracted_srt)
-            segments = [
-                {
-                    "start": sub.start.ordinal / 1000,
-                    "end": sub.end.ordinal / 1000,
-                    "text": sub.text,
-                }
-                for sub in subs
-            ]
+            segments = cached_segments
+            client = prepare_smb_output_client(task, db)
+            _update_task(db, task_id, progress=60)
         else:
-            task_logger.info("No subtitle tracks found, running STT...")
-            audio_path = os.path.join(tmp_dir, "audio.wav")
-            subprocess.run(
-                [
-                    "ffmpeg",
-                    "-y",
-                    "-i",
+            local_video, client = prepare_source_video(task, db, tmp_dir, task_logger)
+            if task.source_type == "smb":
+                download_progress = make_stage_progress_callback(
+                    lambda progress: _update_task(db, task_id, progress=progress),
+                    start=5,
+                    end=20,
+                )
+                client.download_file(
+                    task.file_path,
                     local_video,
-                    "-vn",
-                    "-ar",
-                    "16000",
-                    "-ac",
-                    "1",
-                    audio_path,
-                ],
-                check=True,
-                capture_output=True,
-                timeout=1800,
-            )
-            _update_task(db, task_id, progress=40)
-            stt_engine = _build_stt_engine(task.stt_engine, db)
-            language = task.source_lang if task.source_lang != "auto" else None
+                    progress_callback=download_progress,
+                )
+            else:
+                _update_task(db, task_id, progress=20)
+            _update_task(db, task_id, progress=20)
 
-            stt_progress = make_stage_progress_callback(
-                lambda progress: _update_task(db, task_id, progress=progress),
-                start=40,
-                end=60,
-            )
+            tracks = probe_subtitle_tracks(local_video)
+            task_logger.info("Found %s subtitle track(s)", len(tracks))
 
-            segments = stt_engine.transcribe(audio_path, language=language, progress_callback=stt_progress)
+            if tracks:
+                best = select_best_track(tracks, task.source_lang)
+                extracted_srt = os.path.join(tmp_dir, "extracted.srt")
+                task_logger.info(
+                    "Extracting track index=%s, lang=%s", best.index, best.language
+                )
+                extract_subtitle_track(local_video, best.index, extracted_srt)
+                _update_task(db, task_id, progress=40)
+                subs = pysrt.open(extracted_srt)
+                segments = [
+                    {
+                        "start": sub.start.ordinal / 1000,
+                        "end": sub.end.ordinal / 1000,
+                        "text": sub.text,
+                    }
+                    for sub in subs
+                ]
+            else:
+                task_logger.info("No subtitle tracks found, running STT...")
+                audio_path = os.path.join(tmp_dir, "audio.wav")
+                subprocess.run(
+                    [
+                        "ffmpeg",
+                        "-y",
+                        "-i",
+                        local_video,
+                        "-vn",
+                        "-ar",
+                        "16000",
+                        "-ac",
+                        "1",
+                        audio_path,
+                    ],
+                    check=True,
+                    capture_output=True,
+                    timeout=1800,
+                )
+                _update_task(db, task_id, progress=40)
+                stt_progress = make_stage_progress_callback(
+                    lambda progress: _update_task(db, task_id, progress=progress),
+                    start=40,
+                    end=60,
+                )
+                segments = get_or_transcribe_segments(
+                    task=task,
+                    db=db,
+                    audio_path=audio_path,
+                    log_dir=log_dir,
+                    task_id=task_id,
+                    task_logger=task_logger,
+                    progress_callback=stt_progress,
+                )
 
         try:
             segments_to_srt(segments, str(log_dir / "source.srt"))
