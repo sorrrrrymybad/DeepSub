@@ -5,6 +5,7 @@ import anthropic
 from engines.base import (
     TranslateEngine,
     build_indexed_translation_payload,
+    emit_batch_callback,
     parse_indexed_translation_response,
 )
 
@@ -100,14 +101,19 @@ class ClaudeTranslateEngine(TranslateEngine):
         results: list[str] = []
         for start in range(0, total, batch_size):
             chunk = cleaned[start : start + batch_size]
-            translated = self._translate_batch_chunk(
+            translated, metadata = self._translate_batch_chunk_with_metadata(
                 chunk,
                 source_lang=source_lang,
                 target_lang=target_lang,
             )
             results.extend(translated)
-            if batch_callback:
-                batch_callback(chunk, translated)
+            emit_batch_callback(
+                batch_callback,
+                chunk,
+                translated,
+                raw_input=metadata["raw_input"],
+                raw_output=metadata["raw_output"],
+            )
             if progress_callback:
                 progress_callback(min(start + len(chunk), total) / total)
         return results
@@ -118,16 +124,28 @@ class ClaudeTranslateEngine(TranslateEngine):
         source_lang: str,
         target_lang: str,
     ) -> list[str]:
+        translated, _ = self._translate_batch_chunk_with_metadata(
+            texts,
+            source_lang=source_lang,
+            target_lang=target_lang,
+        )
+        return translated
+
+    def _translate_batch_chunk_with_metadata(
+        self,
+        texts: list[str],
+        source_lang: str,
+        target_lang: str,
+    ) -> tuple[list[str], dict[str, str]]:
         if not texts:
-            return []
+            return [], {"raw_input": "", "raw_output": ""}
         if len(texts) == 1:
-            return [
-                self.translate(
-                    texts[0],
-                    source_lang=source_lang,
-                    target_lang=target_lang,
-                )
-            ]
+            raw_output = self.translate(
+                texts[0],
+                source_lang=source_lang,
+                target_lang=target_lang,
+            )
+            return [raw_output], {"raw_input": texts[0], "raw_output": raw_output}
 
         payload = build_indexed_translation_payload(texts)
         translated = self._translate_text(
@@ -136,4 +154,7 @@ class ClaudeTranslateEngine(TranslateEngine):
             target_lang=target_lang,
             extra_system_instructions=BATCH_FORMAT_INSTRUCTIONS,
         )
-        return parse_indexed_translation_response(translated, expected_count=len(texts))
+        return parse_indexed_translation_response(translated, expected_count=len(texts)), {
+            "raw_input": payload,
+            "raw_output": translated,
+        }

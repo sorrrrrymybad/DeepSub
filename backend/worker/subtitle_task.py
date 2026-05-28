@@ -443,14 +443,20 @@ def process_subtitle_task(self, task_id: int):
             pass
         batch_state = {"index": 0, "offset": 0}
 
-        def batch_callback(inputs: list[str], outputs: list[str]) -> None:
+        def batch_callback(
+            inputs: list[str],
+            outputs: list[str],
+            metadata: dict | None = None,
+        ) -> None:
             start = batch_state["offset"]
             end = start + len(inputs)
+            raw_input = (metadata or {}).get("raw_input")
+            raw_output = (metadata or {}).get("raw_output")
             record = {
                 "batch_index": batch_state["index"],
                 "segment_range": [start, end],
-                "inputs": inputs,
-                "outputs": outputs,
+                "input": raw_input if raw_input is not None else "\n".join(inputs),
+                "output": raw_output if raw_output is not None else "\n".join(outputs),
             }
             try:
                 with open(jsonl_path, "a", encoding="utf-8") as f:

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import inspect
 import json
 
 
@@ -24,8 +25,13 @@ class TranslateEngine(ABC):
         for idx, text in enumerate(cleaned):
             result = self.translate(text, source_lang=source_lang, target_lang=target_lang)
             results.append(result)
-            if batch_callback:
-                batch_callback([text], [result])
+            emit_batch_callback(
+                batch_callback,
+                [text],
+                [result],
+                raw_input=text,
+                raw_output=result,
+            )
             if progress_callback:
                 progress_callback((idx + 1) / total if total else 1.0)
         return results
@@ -88,3 +94,34 @@ def parse_indexed_translation_response(response_text: str, expected_count: int) 
         raise ValueError(f"Translation response missing item ids: {missing}")
 
     return [translated_by_id[index] for index in range(expected_count)]
+
+
+def emit_batch_callback(
+    batch_callback,
+    inputs: list[str],
+    outputs: list[str],
+    *,
+    raw_input: str | None = None,
+    raw_output: str | None = None,
+) -> None:
+    if not batch_callback:
+        return
+
+    metadata = {
+        "raw_input": raw_input if raw_input is not None else "\n".join(inputs),
+        "raw_output": raw_output if raw_output is not None else "\n".join(outputs),
+    }
+    try:
+        parameters = inspect.signature(batch_callback).parameters
+    except (TypeError, ValueError):
+        batch_callback(inputs, outputs, metadata)
+        return
+
+    accepts_varargs = any(
+        parameter.kind == inspect.Parameter.VAR_POSITIONAL
+        for parameter in parameters.values()
+    )
+    if accepts_varargs or len(parameters) >= 3:
+        batch_callback(inputs, outputs, metadata)
+    else:
+        batch_callback(inputs, outputs)

@@ -1,11 +1,12 @@
 import logging
 from typing import Any
 
-from openai import OpenAI
+from openai import APIStatusError, OpenAI
 
 from engines.base import (
     TranslateEngine,
     build_indexed_translation_payload,
+    emit_batch_callback,
     parse_indexed_translation_response,
 )
 
@@ -75,12 +76,31 @@ class OpenAITranslateEngine(TranslateEngine):
         # logger.info("[OpenAI] base_url=%s model=%s", self.client.base_url, self.model)
         # logger.info("[OpenAI] request payload: %s", request_payload)
         try:
-            response = self.client.responses.create(**request_payload)
+            response = self._create_response(request_payload)
             # logger.info("[OpenAI] response: %s", response)
             return self._extract_text(response)
         except Exception as e:
             logger.error("[OpenAI] error: %s", e)
             raise
+
+    def _create_response(self, request_payload: dict) -> Any:
+        try:
+            return self.client.responses.create(**request_payload)
+        except APIStatusError as exc:
+            if getattr(exc, "status_code", None) != 404:
+                raise
+            logger.info(
+                "[OpenAI] responses API unavailable, falling back to chat completions"
+            )
+            completion = self.client.chat.completions.create(
+                model=request_payload["model"],
+                messages=[
+                    {"role": "system", "content": request_payload["instructions"]},
+                    {"role": "user", "content": request_payload["input"]},
+                ],
+                temperature=request_payload.get("temperature", 0.3),
+            )
+            return completion
 
     def translate_batch(
         self,
@@ -107,8 +127,13 @@ class OpenAITranslateEngine(TranslateEngine):
                     context_texts=context_texts,
                 )
                 results.append(result)
-                if batch_callback:
-                    batch_callback([text], [result])
+                emit_batch_callback(
+                    batch_callback,
+                    [text],
+                    [result],
+                    raw_input=self._build_input_text(text, context_texts),
+                    raw_output=result,
+                )
                 if progress_callback:
                     progress_callback((idx + 1) / total)
             return results
@@ -117,15 +142,20 @@ class OpenAITranslateEngine(TranslateEngine):
         for start in range(0, total, batch_size):
             chunk = cleaned[start : start + batch_size]
             context_texts = cleaned[max(0, start - CONTEXT_WINDOW_SIZE) : start]
-            translated = self._translate_batch_chunk(
+            translated, metadata = self._translate_batch_chunk_with_metadata(
                 chunk,
                 source_lang=source_lang,
                 target_lang=target_lang,
                 context_texts=context_texts,
             )
             results.extend(translated)
-            if batch_callback:
-                batch_callback(chunk, translated)
+            emit_batch_callback(
+                batch_callback,
+                chunk,
+                translated,
+                raw_input=metadata["raw_input"],
+                raw_output=metadata["raw_output"],
+            )
             if progress_callback:
                 progress_callback(min(start + len(chunk), total) / total)
         return results
@@ -137,19 +167,37 @@ class OpenAITranslateEngine(TranslateEngine):
         target_lang: str,
         context_texts: list[str] | None = None,
     ) -> list[str]:
+        translated, _ = self._translate_batch_chunk_with_metadata(
+            texts,
+            source_lang=source_lang,
+            target_lang=target_lang,
+            context_texts=context_texts,
+        )
+        return translated
+
+    def _translate_batch_chunk_with_metadata(
+        self,
+        texts: list[str],
+        source_lang: str,
+        target_lang: str,
+        context_texts: list[str] | None = None,
+    ) -> tuple[list[str], dict[str, str]]:
         if not texts:
-            return []
+            return [], {"raw_input": "", "raw_output": ""}
         if len(texts) == 1:
-            return [
-                self._translate_with_context(
-                    texts[0],
-                    source_lang=source_lang,
-                    target_lang=target_lang,
-                    context_texts=context_texts,
-                )
-            ]
+            raw_output = self._translate_with_context(
+                texts[0],
+                source_lang=source_lang,
+                target_lang=target_lang,
+                context_texts=context_texts,
+            )
+            return [raw_output], {
+                "raw_input": self._build_input_text(texts[0], context_texts),
+                "raw_output": raw_output,
+            }
 
         payload = build_indexed_translation_payload(texts)
+        raw_input = self._build_input_text(payload, context_texts)
         translated = self._translate_with_context(
             payload,
             source_lang=source_lang,
@@ -157,7 +205,10 @@ class OpenAITranslateEngine(TranslateEngine):
             context_texts=context_texts,
             extra_instructions=BATCH_FORMAT_INSTRUCTIONS,
         )
-        return parse_indexed_translation_response(translated, expected_count=len(texts))
+        return parse_indexed_translation_response(translated, expected_count=len(texts)), {
+            "raw_input": raw_input,
+            "raw_output": translated,
+        }
 
     def _build_input_text(self, text: str, context_texts: list[str] | None = None) -> str:
         if not context_texts:
@@ -174,6 +225,13 @@ class OpenAITranslateEngine(TranslateEngine):
         output_text = getattr(response, "output_text", None)
         if isinstance(output_text, str) and output_text.strip():
             return output_text.strip()
+
+        choices = getattr(response, "choices", None) or []
+        if choices:
+            message = getattr(choices[0], "message", None)
+            content = getattr(message, "content", None)
+            if isinstance(content, str) and content.strip():
+                return content.strip()
 
         for item in getattr(response, "output", None) or []:
             for content in getattr(item, "content", None) or []:
