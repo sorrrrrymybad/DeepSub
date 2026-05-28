@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import json
 
 
 class TranslateEngine(ABC):
@@ -15,36 +16,18 @@ class TranslateEngine(ABC):
         progress_callback=None,
         batch_callback=None,
     ) -> list[str]:
-        # Strip inline newlines from each segment before translation
+        # Default to per-segment translation. Joining subtitles and splitting by
+        # newlines can silently shift translated text onto the wrong timestamps.
         cleaned = [t.replace("\n", " ").strip() for t in texts]
         total = len(cleaned)
-
-        if batch_size <= 1:
-            results = []
-            for idx, text in enumerate(cleaned):
-                result = self.translate(text, source_lang=source_lang, target_lang=target_lang)
-                results.append(result)
-                if batch_callback:
-                    batch_callback([text], [result])
-                if progress_callback:
-                    progress_callback((idx + 1) / total)
-            return results
-
         results: list[str] = []
-        for i in range(0, total, batch_size):
-            chunk = cleaned[i : i + batch_size]
-            merged = "\n".join(chunk)
-            translated = self.translate(merged, source_lang=source_lang, target_lang=target_lang)
-            parts = translated.split("\n")
-            # Pad or trim to match chunk length in case the model returns different line counts
-            if len(parts) < len(chunk):
-                parts += [""] * (len(chunk) - len(parts))
-            chunk_outputs = parts[: len(chunk)]
-            results.extend(chunk_outputs)
+        for idx, text in enumerate(cleaned):
+            result = self.translate(text, source_lang=source_lang, target_lang=target_lang)
+            results.append(result)
             if batch_callback:
-                batch_callback(chunk, chunk_outputs)
+                batch_callback([text], [result])
             if progress_callback:
-                progress_callback(min(i + len(chunk), total) / total)
+                progress_callback((idx + 1) / total if total else 1.0)
         return results
 
 
@@ -55,3 +38,53 @@ class STTEngine(ABC):
 
         progress_callback(ratio: float) called with 0.0-1.0 as transcription progresses.
         """
+
+
+def build_indexed_translation_payload(texts: list[str]) -> str:
+    return json.dumps(
+        [{"id": index, "text": text} for index, text in enumerate(texts)],
+        ensure_ascii=False,
+    )
+
+
+def parse_indexed_translation_response(response_text: str, expected_count: int) -> list[str]:
+    raw = response_text.strip()
+    if raw.startswith("```"):
+        lines = raw.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].startswith("```"):
+            lines = lines[:-1]
+        raw = "\n".join(lines).strip()
+
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Translation response must be a JSON array") from exc
+
+    if isinstance(data, dict) and isinstance(data.get("translations"), list):
+        data = data["translations"]
+    if not isinstance(data, list):
+        raise ValueError("Translation response must be a JSON array")
+
+    translated_by_id: dict[int, str] = {}
+    for item in data:
+        if not isinstance(item, dict):
+            raise ValueError("Translation response items must be objects")
+        item_id = item.get("id")
+        text = item.get("text")
+        if not isinstance(item_id, int):
+            raise ValueError("Translation response item id must be an integer")
+        if item_id < 0 or item_id >= expected_count:
+            raise ValueError(f"Translation response contains unexpected id: {item_id}")
+        if item_id in translated_by_id:
+            raise ValueError(f"Translation response contains duplicate id: {item_id}")
+        if not isinstance(text, str):
+            raise ValueError(f"Translation response text for id {item_id} must be a string")
+        translated_by_id[item_id] = text.strip()
+
+    missing = [index for index in range(expected_count) if index not in translated_by_id]
+    if missing:
+        raise ValueError(f"Translation response missing item ids: {missing}")
+
+    return [translated_by_id[index] for index in range(expected_count)]

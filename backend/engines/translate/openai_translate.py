@@ -3,7 +3,11 @@ from typing import Any
 
 from openai import OpenAI
 
-from engines.base import TranslateEngine
+from engines.base import (
+    TranslateEngine,
+    build_indexed_translation_payload,
+    parse_indexed_translation_response,
+)
 
 logger = logging.getLogger(__name__)
 CONTEXT_WINDOW_SIZE = 10
@@ -12,6 +16,15 @@ DEFAULT_TRANSLATE_PROMPT = (
     "You are a professional subtitle translator. "
     "Translate from {source_lang} to {target_lang}. "
     "Output ONLY the translated text, no explanations."
+)
+
+BATCH_FORMAT_INSTRUCTIONS = (
+    "Batch format requirements:\n"
+    "- The user input is a JSON array of objects with id and text fields.\n"
+    "- Translate only the text value of each object.\n"
+    "- Return ONLY a JSON array of objects using the same ids.\n"
+    "- Do not add, remove, merge, split, reorder, or renumber items.\n"
+    "- Each output object must be shaped as {\"id\": number, \"text\": string}."
 )
 
 
@@ -41,6 +54,7 @@ class OpenAITranslateEngine(TranslateEngine):
         source_lang: str,
         target_lang: str,
         context_texts: list[str] | None = None,
+        extra_instructions: str | None = None,
     ) -> str:
         if not text.strip():
             return ""
@@ -49,6 +63,8 @@ class OpenAITranslateEngine(TranslateEngine):
         instructions = self.prompt_template.format(
             source_lang=effective_source, target_lang=target_lang
         )
+        if extra_instructions:
+            instructions = f"{instructions}\n\n{extra_instructions}"
         input_text = self._build_input_text(text, context_texts)
         request_payload = {
             "model": self.model,
@@ -133,16 +149,15 @@ class OpenAITranslateEngine(TranslateEngine):
                 )
             ]
 
+        payload = build_indexed_translation_payload(texts)
         translated = self._translate_with_context(
-            "\n".join(texts),
+            payload,
             source_lang=source_lang,
             target_lang=target_lang,
             context_texts=context_texts,
+            extra_instructions=BATCH_FORMAT_INSTRUCTIONS,
         )
-        parts = translated.split("\n")
-        if len(parts) < len(texts):
-            parts += [""] * (len(texts) - len(parts))
-        return parts[: len(texts)]
+        return parse_indexed_translation_response(translated, expected_count=len(texts))
 
     def _build_input_text(self, text: str, context_texts: list[str] | None = None) -> str:
         if not context_texts:
