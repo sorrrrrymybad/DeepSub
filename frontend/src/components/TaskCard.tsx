@@ -58,10 +58,10 @@ export default function TaskCard({ task }: { task: Task }) {
         </span>*/}
         <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
           <div className="min-w-0 sm:flex-1">
-            <p className="truncate text-[1.125rem] font-bold leading-[1.5] tracking-[-0.03em] text-on-surface" title={task.file_path}>
+            <p className="whitespace-normal break-words text-[1.125rem] font-bold leading-[1.5] tracking-[-0.03em] text-on-surface" title={task.file_path}>
               {filename}
             </p>
-            <p className="truncate text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+            <p className="whitespace-normal break-words text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
               {task.file_path}
             </p>
             <p className="mt-1 text-[0.72rem] tracking-[0.04em] mt-2 text-on-surface-variant">

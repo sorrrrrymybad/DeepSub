@@ -8,15 +8,16 @@ const VIDEO_EXTS = ['.mkv', '.mp4', '.avi', '.ts', '.mov']
 type SortOrder = 'asc' | 'desc'
 
 interface Props {
+  path: string
   selected: string[]
+  onPathChange: (path: string) => void
   onToggle: (path: string) => void
   onSelectAll?: (paths: string[]) => void
   onDeselectAll?: (paths: string[]) => void
 }
 
-export default function LocalFileBrowser({ selected, onToggle, onSelectAll, onDeselectAll }: Props) {
+export default function LocalFileBrowser({ path, selected, onPathChange, onToggle, onSelectAll, onDeselectAll }: Props) {
   const { t } = useTranslation()
-  const [path, setPath] = useState('/')
   const [history, setHistory] = useState<string[]>([])
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
 
@@ -28,13 +29,13 @@ export default function LocalFileBrowser({ selected, onToggle, onSelectAll, onDe
   const navigate = (entry: LocalFileEntry) => {
     const newPath = `${path.endsWith('/') ? path : `${path}/`}${entry.name}`
     setHistory(h => [...h, path])
-    setPath(newPath)
+    onPathChange(newPath)
   }
 
   const goBack = () => {
     const prev = history.at(-1) ?? '/'
     setHistory(h => h.slice(0, -1))
-    setPath(prev)
+    onPathChange(prev)
   }
 
   const isVideo = (name: string) => VIDEO_EXTS.some(ext => name.toLowerCase().endsWith(ext))

@@ -12,12 +12,47 @@ import PageHero from '../components/page/PageHero'
 import SectionCard from '../components/page/SectionCard'
 import { useToast } from '../context/ToastContext'
 
+type SourceType = 'smb' | 'local'
+
+interface FavoritePath {
+  id: string
+  type: SourceType
+  path: string
+  serverId?: number
+  serverName?: string
+}
+
+const FAVORITE_PATHS_STORAGE_KEY = 'deepsub.favoritePaths'
+
+function loadFavoritePaths(): FavoritePath[] {
+  try {
+    const raw = localStorage.getItem(FAVORITE_PATHS_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((item): item is FavoritePath =>
+      typeof item?.id === 'string'
+      && (item.type === 'smb' || item.type === 'local')
+      && typeof item.path === 'string'
+    )
+  } catch {
+    return []
+  }
+}
+
+function createFavoritePathId(type: SourceType, path: string, serverId?: number): string {
+  return `${type}:${serverId ?? 'local'}:${path}`
+}
+
 export default function NewTaskPage() {
   const { t } = useTranslation()
   const { show } = useToast()
   const navigate = useNavigate()
-  const [sourceType, setSourceType] = useState<'smb' | 'local'>('smb')
+  const [sourceType, setSourceType] = useState<SourceType>('smb')
   const [serverId, setServerId] = useState<number | null>(null)
+  const [smbPath, setSmbPath] = useState('/')
+  const [localPath, setLocalPath] = useState('/')
+  const [favoritePaths, setFavoritePaths] = useState<FavoritePath[]>(loadFavoritePaths)
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
   const [sourceLang, setSourceLang] = useState('auto')
   const [targetLang, setTargetLang] = useState('zh')
@@ -50,6 +85,43 @@ export default function NewTaskPage() {
   ]
 
   const { data: servers } = useQuery({ queryKey: ['smb-servers'], queryFn: smbApi.list })
+  const selectedServer = servers?.find(server => server.id === serverId)
+  const currentPath = sourceType === 'smb' ? smbPath : localPath
+  const currentFavoriteId = createFavoritePathId(sourceType, currentPath, serverId ?? undefined)
+  const canAddFavoritePath = sourceType === 'local' || serverId !== null
+  const currentPathFavorited = favoritePaths.some(item => item.id === currentFavoriteId)
+
+  const persistFavoritePaths = (nextFavoritePaths: FavoritePath[]) => {
+    setFavoritePaths(nextFavoritePaths)
+    localStorage.setItem(FAVORITE_PATHS_STORAGE_KEY, JSON.stringify(nextFavoritePaths))
+  }
+
+  const handleAddFavoritePath = () => {
+    if (!canAddFavoritePath || currentPathFavorited) return
+    const nextFavoritePath: FavoritePath = {
+      id: currentFavoriteId,
+      type: sourceType,
+      path: currentPath,
+      ...(sourceType === 'smb' && serverId !== null ? { serverId, serverName: selectedServer?.name } : {}),
+    }
+    persistFavoritePaths([...favoritePaths, nextFavoritePath])
+  }
+
+  const handleRemoveFavoritePath = (favoritePathId: string) => {
+    persistFavoritePaths(favoritePaths.filter(item => item.id !== favoritePathId))
+  }
+
+  const handleOpenFavoritePath = (favoritePath: FavoritePath) => {
+    setSourceType(favoritePath.type)
+    setSelectedFiles([])
+    if (favoritePath.type === 'smb') {
+      setServerId(favoritePath.serverId ?? null)
+      setSmbPath(favoritePath.path)
+      return
+    }
+    setServerId(null)
+    setLocalPath(favoritePath.path)
+  }
 
   const toggleFile = (path: string) => {
     setSelectedFiles(prev => prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path])
@@ -139,6 +211,64 @@ export default function NewTaskPage() {
                   )
                 })}
               </div>
+
+              <div className="mt-4 border-t border-outline-variant pt-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
+                      {t('newTaskPage.favoritePathsTitle')}
+                    </p>
+                    <p className="break-words text-xs text-on-surface-variant">
+                      {currentPath}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddFavoritePath}
+                    disabled={!canAddFavoritePath || currentPathFavorited}
+                    className="rounded-full border border-outline-variant px-3 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-primary transition-colors hover:border-primary disabled:opacity-40 disabled:text-on-surface-variant"
+                  >
+                    {currentPathFavorited ? t('newTaskPage.favoritePathSaved') : t('newTaskPage.favoritePathAdd')}
+                  </button>
+                </div>
+
+                {favoritePaths.length > 0 ? (
+                  <div className="mt-3 flex flex-col gap-2">
+                    {favoritePaths.map((favoritePath) => (
+                      <div
+                        key={favoritePath.id}
+                        className="flex min-w-0 items-center gap-2 rounded-2xl border border-outline-variant px-3 py-2"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleOpenFavoritePath(favoritePath)}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-primary">
+                            {favoritePath.type === 'smb'
+                              ? t('newTaskPage.favoritePathSmb', { server: favoritePath.serverName ?? favoritePath.serverId })
+                              : t('newTaskPage.favoritePathLocal')}
+                          </span>
+                          <span className="block break-words text-xs font-medium text-on-surface">
+                            {favoritePath.path}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFavoritePath(favoritePath.id)}
+                          className="shrink-0 rounded-full border border-outline-variant px-2.5 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant transition-colors hover:border-error hover:text-error"
+                        >
+                          {t('common.remove')}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-on-surface-variant">
+                    {t('newTaskPage.favoritePathEmpty')}
+                  </p>
+                )}
+              </div>
             </div>
 
             {sourceType === 'smb' ? (
@@ -157,6 +287,7 @@ export default function NewTaskPage() {
                     onChange={e => {
                       const nextValue = e.target.value
                       setServerId(nextValue ? Number(nextValue) : null)
+                      setSmbPath('/')
                       setSelectedFiles([])
                     }}
                     className="w-full rounded-2xl px-4 py-3 text-sm"
@@ -167,11 +298,11 @@ export default function NewTaskPage() {
                 </div>
 
                 {serverId ? (
-                  <SMBFileBrowser serverId={serverId} selected={selectedFiles} onToggle={toggleFile} onSelectAll={selectAll} onDeselectAll={deselectAll} />
+                  <SMBFileBrowser serverId={serverId} path={smbPath} selected={selectedFiles} onPathChange={setSmbPath} onToggle={toggleFile} onSelectAll={selectAll} onDeselectAll={deselectAll} />
                 ) : ""}
               </>
             ) : (
-              <LocalFileBrowser selected={selectedFiles} onToggle={toggleFile} onSelectAll={selectAll} onDeselectAll={deselectAll} />
+              <LocalFileBrowser path={localPath} selected={selectedFiles} onPathChange={setLocalPath} onToggle={toggleFile} onSelectAll={selectAll} onDeselectAll={deselectAll} />
             )}
           </div>
         </SectionCard>
