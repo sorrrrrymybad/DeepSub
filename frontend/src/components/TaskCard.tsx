@@ -56,8 +56,8 @@ export default function TaskCard({ task }: { task: Task }) {
         {/*<span className="absolute left-2 top-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
           #{task.id}
         </span>*/}
-        <div className="flex items-start justify-between gap-5 mt-1">
-          <div className="flex-1 min-w-0">
+        <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
+          <div className="min-w-0 sm:flex-1">
             <p className="truncate text-[1.125rem] font-bold leading-[1.5] tracking-[-0.03em] text-on-surface" title={task.file_path}>
               {filename}
             </p>
@@ -68,7 +68,7 @@ export default function TaskCard({ task }: { task: Task }) {
               {new Date(task.updated_at).toLocaleString()}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 sm:shrink-0 sm:flex-nowrap">
             <Badge>{task.source_type === 'local' ? t('taskCard.sourceLocalBadge') : t('taskCard.sourceSmbBadge')}</Badge>
             <Badge variant={task.status}>{t(`taskStatus.${task.status}`)}</Badge>
             {duration && (
@@ -100,7 +100,7 @@ export default function TaskCard({ task }: { task: Task }) {
           </p>
         )}
 
-        <div className="mt-2 flex items-center gap-3 text-[0.72rem] font-semibold uppercase tracking-[0.14em]">
+        <div className="mt-4 flex flex-col gap-3 text-[0.72rem] font-semibold uppercase tracking-[0.14em] sm:mt-2 sm:flex-row sm:items-center">
           {task.status === 'failed' && task.retry_count < 5 && (
             <button
               onClick={handleRetry}
@@ -109,7 +109,7 @@ export default function TaskCard({ task }: { task: Task }) {
               {t('common.retry')}
             </button>
           )}
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center justify-end gap-3 sm:ml-auto">
             <button
               onClick={() => setShowLog(true)}
               className="rounded-full border border-outline-variant px-3 py-2 text-primary transition-colors hover:border-primary hover:text-primary-dim"

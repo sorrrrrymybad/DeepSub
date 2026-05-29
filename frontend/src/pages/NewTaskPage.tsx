@@ -33,10 +33,10 @@ export default function NewTaskPage() {
 
   const TRANSLATE_ENGINES = [
     { value: 'openai', label: t('newTaskPage.engineOpenai') },
+    { value: 'claude', label: t('newTaskPage.engineClaude') },
     { value: 'deeplx', label: t('newTaskPage.engineDeeplx') },
     { value: 'deepl', label: t('newTaskPage.engineDeepl') },
     { value: 'google', label: t('newTaskPage.engineGoogle') },
-    { value: 'claude', label: t('newTaskPage.engineClaude') },
   ]
 
   const LANGUAGES = [
