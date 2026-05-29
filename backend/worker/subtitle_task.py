@@ -17,6 +17,7 @@ from core.config import settings
 from core.database import SessionLocal
 from models.task import Task
 from smb.client import SMBClient
+from engines.base import parse_indexed_translation_response
 from worker.progress import make_stage_progress_callback
 from worker.srt_writer import segments_to_srt
 from worker.subtitle_extractor import (
@@ -158,6 +159,46 @@ def _build_translate_engine(engine_name: str, db):
 def _normalize_translated_text(text: str) -> str:
     text = text.replace("。", " ").replace(".", " ")
     return re.sub(r"[,，]\s*$", " ", text)
+
+
+def _load_cached_translations(jsonl_path: Path, expected_count: int) -> list[str | None]:
+    cached: list[str | None] = [None] * expected_count
+    if not jsonl_path.exists():
+        return cached
+
+    with open(jsonl_path, "r", encoding="utf-8") as f:
+        for line in f:
+            try:
+                record = json.loads(line)
+                start, end = record["segment_range"]
+                if not isinstance(start, int) or not isinstance(end, int):
+                    continue
+                if start < 0 or end > expected_count or start >= end:
+                    continue
+                output = record.get("output")
+                if not isinstance(output, str):
+                    continue
+                span = end - start
+                translated = (
+                    [output.strip()]
+                    if span == 1
+                    else parse_indexed_translation_response(output, expected_count=span)
+                )
+                if len(translated) != span:
+                    continue
+            except Exception:
+                continue
+
+            for index, text in enumerate(translated, start=start):
+                cached[index] = text
+    return cached
+
+
+def _get_cached_translation_prefix_length(cached: list[str | None]) -> int:
+    for index, text in enumerate(cached):
+        if text is None:
+            return index
+    return len(cached)
 
 
 def _build_stt_engine(engine_name: str, db):
@@ -494,11 +535,18 @@ def process_subtitle_task(self, task_id: int):
         )
 
         jsonl_path = log_dir / "translate.jsonl"
-        try:
-            jsonl_path.unlink()
-        except FileNotFoundError:
-            pass
-        batch_state = {"index": 0, "offset": 0}
+        originals = [segment["text"] for segment in segments]
+        cached_translations = _load_cached_translations(
+            jsonl_path,
+            expected_count=len(originals),
+        )
+        cached_count = _get_cached_translation_prefix_length(cached_translations)
+        if cached_count > 0:
+            task_logger.info(
+                "Using cached translation results for %s segment(s).",
+                cached_count,
+            )
+        batch_state = {"index": 0, "offset": cached_count}
 
         def batch_callback(
             inputs: list[str],
@@ -523,15 +571,32 @@ def process_subtitle_task(self, task_id: int):
             batch_state["index"] += 1
             batch_state["offset"] = end
 
-        originals = [segment["text"] for segment in segments]
-        translated = translator.translate_batch(
-            originals,
-            source_lang=task.source_lang,
-            target_lang=task.target_lang,
-            batch_size=batch_size,
-            progress_callback=translate_progress,
-            batch_callback=batch_callback,
-        )
+        remaining_originals = originals[cached_count:]
+
+        def cached_translate_progress(ratio: float) -> None:
+            if not originals:
+                translate_progress(1.0)
+                return
+            completed = cached_count + int(round(len(remaining_originals) * ratio))
+            translate_progress(min(completed, len(originals)) / len(originals))
+
+        translated = [
+            text if text is not None else ""
+            for text in cached_translations[:cached_count]
+        ]
+        if remaining_originals:
+            translated.extend(
+                translator.translate_batch(
+                    remaining_originals,
+                    source_lang=task.source_lang,
+                    target_lang=task.target_lang,
+                    batch_size=batch_size,
+                    progress_callback=cached_translate_progress,
+                    batch_callback=batch_callback,
+                )
+            )
+        else:
+            translate_progress(1.0)
         translated = [_normalize_translated_text(text) for text in translated]
 
         try:
