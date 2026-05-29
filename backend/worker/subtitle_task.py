@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -152,6 +153,11 @@ def _build_translate_engine(engine_name: str, db):
             prompt_template=get_setting("translate.prompt") or None,
         )
     raise ValueError(f"Unknown translate engine: {engine_name}")
+
+
+def _normalize_translated_text(text: str) -> str:
+    text = text.replace("。", " ").replace(".", " ")
+    return re.sub(r"[,，]\s*$", " ", text)
 
 
 def _build_stt_engine(engine_name: str, db):
@@ -526,6 +532,7 @@ def process_subtitle_task(self, task_id: int):
             progress_callback=translate_progress,
             batch_callback=batch_callback,
         )
+        translated = [_normalize_translated_text(text) for text in translated]
 
         try:
             bilingual_segments = [
