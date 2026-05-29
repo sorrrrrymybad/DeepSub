@@ -1,6 +1,7 @@
 """Created by Sorrymybad."""
 from __future__ import annotations
 
+import logging
 import threading
 
 import redis as sync_redis
@@ -10,6 +11,7 @@ from core.config import settings
 # Redis key 格式: whisper:download:<model_size>
 # 值: "0" 初始, "50" 下载中, "done" 完成, "error:<msg>" 失败
 _PROGRESS_TTL = 3600  # 1 hour
+logger = logging.getLogger(__name__)
 
 
 def _redis_key(model_size: str) -> str:
@@ -46,7 +48,12 @@ def get_download_progress(model_size: str) -> dict:
     try:
         r = sync_redis.from_url(settings.redis_url)
         raw = r.get(_redis_key(model_size))
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "Failed to read Whisper download progress from Redis: model_size=%s error=%s",
+            model_size,
+            exc,
+        )
         raw = None
 
     if raw is None:
@@ -74,24 +81,47 @@ def _download_worker(model_size: str) -> None:
     下载使用 WhisperModel(download_root=...) 保证与运行时加载路径完全一致。
     """
     key = _redis_key(model_size)
+    r = None
     try:
+        logger.info(
+            "Starting Whisper model download: model_size=%s model_dir=%s",
+            model_size,
+            settings.whisper_model_dir,
+        )
         r = sync_redis.from_url(settings.redis_url)
         r.set(key, "0", ex=_PROGRESS_TTL)
 
         from faster_whisper import WhisperModel
 
+        logger.info("Whisper model download in progress: model_size=%s", model_size)
         r.set(key, "50", ex=_PROGRESS_TTL)
         # 使用与 WhisperLocalEngine._load_model() 完全相同的参数，
         # 保证下载路径和运行时缓存路径一致
         WhisperModel(model_size, download_root=str(settings.whisper_model_dir), compute_type="float32")
 
         r.set(key, "done", ex=_PROGRESS_TTL)
+        logger.info(
+            "Whisper model download completed: model_size=%s model_dir=%s",
+            model_size,
+            settings.whisper_model_dir,
+        )
 
     except Exception as exc:
+        logger.exception("Whisper model download failed: model_size=%s error=%s", model_size, exc)
         try:
-            r.set(key, f"error:{str(exc)[:200]}", ex=_PROGRESS_TTL)
-        except Exception:
-            pass
+            if r is None:
+                logger.warning(
+                    "Cannot write Whisper download error to Redis because Redis client was not initialized: model_size=%s",
+                    model_size,
+                )
+            else:
+                r.set(key, f"error:{str(exc)[:200]}", ex=_PROGRESS_TTL)
+        except Exception as redis_exc:
+            logger.warning(
+                "Failed to write Whisper download error to Redis: model_size=%s error=%s",
+                model_size,
+                redis_exc,
+            )
 
 
 def start_download(model_size: str) -> bool:
@@ -102,8 +132,10 @@ def start_download(model_size: str) -> bool:
     """
     status = get_download_progress(model_size)
     if status["downloading"]:
+        logger.info("Whisper model download already running: model_size=%s", model_size)
         return False
 
     t = threading.Thread(target=_download_worker, args=(model_size,), daemon=True)
     t.start()
+    logger.info("Started Whisper model download thread: model_size=%s", model_size)
     return True

@@ -20,12 +20,14 @@ VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".ts", ".mov"}
 def run_scheduled_job(job_id: int):
     db = SessionLocal()
     try:
+        logger.info("Running scheduled job: job_id=%s", job_id)
         job = (
             db.query(ScheduledJob)
             .filter(ScheduledJob.id == job_id, ScheduledJob.enabled.is_(True))
             .first()
         )
         if not job:
+            logger.info("Scheduled job skipped because it is missing or disabled: job_id=%s", job_id)
             return
 
         from models.smb_server import SMBServer
@@ -34,6 +36,12 @@ def run_scheduled_job(job_id: int):
         server = db.query(SMBServer).filter(SMBServer.id == job.smb_server_id).first()
         client = SMBClient.from_server_model(server)
 
+        logger.info(
+            "Scanning scheduled SMB directory: job_id=%s server_id=%s directory=%s",
+            job_id,
+            job.smb_server_id,
+            job.directory,
+        )
         entries = client.list_directory(job.directory)
         video_files = [
             entry
@@ -41,8 +49,15 @@ def run_scheduled_job(job_id: int):
             if not entry["is_dir"]
             and any(entry["name"].lower().endswith(ext) for ext in VIDEO_EXTENSIONS)
         ]
+        logger.info(
+            "Scheduled job scan result: job_id=%s entries=%s video_files=%s",
+            job_id,
+            len(entries),
+            len(video_files),
+        )
 
         created = 0
+        skipped_existing = 0
         for entry in video_files:
             file_path = f"{job.directory.rstrip('/')}/{entry['name']}"
             existing = (
@@ -56,6 +71,7 @@ def run_scheduled_job(job_id: int):
                 .first()
             )
             if existing:
+                skipped_existing += 1
                 continue
 
             task = Task(
@@ -71,6 +87,12 @@ def run_scheduled_job(job_id: int):
             db.flush()
             process_subtitle_task.delay(task.id)
             created += 1
+            logger.info(
+                "Created task from scheduled job: job_id=%s task_id=%s file_path=%s",
+                job_id,
+                task.id,
+                file_path,
+            )
 
         db.query(ScheduledJob).filter(ScheduledJob.id == job_id).update(
             {
@@ -79,6 +101,12 @@ def run_scheduled_job(job_id: int):
             }
         )
         db.commit()
+        logger.info(
+            "Scheduled job completed: job_id=%s created=%s skipped_existing=%s",
+            job_id,
+            created,
+            skipped_existing,
+        )
     except Exception as exc:
         logger.exception("Scheduled job %s failed: %s", job_id, exc)
         db.query(ScheduledJob).filter(ScheduledJob.id == job_id).update(
@@ -102,6 +130,15 @@ def poll_scheduled_jobs():
             cron = croniter(job.cron_expr, job.last_run_at or (now - timedelta(minutes=2)))
             next_run = cron.get_next(datetime)
             if next_run <= now:
+                logger.info(
+                    "Dispatching due scheduled job: job_id=%s next_run=%s now=%s",
+                    job.id,
+                    next_run,
+                    now,
+                )
                 run_scheduled_job.delay(job.id)
+    except Exception:
+        logger.exception("Failed to poll scheduled jobs")
+        raise
     finally:
         db.close()

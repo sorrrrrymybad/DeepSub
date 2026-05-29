@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import ValidationError
@@ -9,6 +11,7 @@ from schemas.task import TaskCreate, TaskListResponse, TaskResponse, TaskSummary
 from worker.subtitle_task import process_subtitle_task
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("", response_model=list[TaskResponse], status_code=201)
@@ -41,6 +44,17 @@ def create_tasks(payload: dict = Body(...), db: Session = Depends(get_db)):
     for task in tasks:
         db.refresh(task)
         process_subtitle_task.delay(task.id)
+    logger.info(
+        "Created subtitle tasks: ids=%s count=%s source_type=%s source_lang=%s target_lang=%s stt_engine=%s translate_engine=%s overwrite=%s",
+        [task.id for task in tasks],
+        len(tasks),
+        data.source_type,
+        data.source_lang,
+        data.target_lang,
+        data.stt_engine,
+        data.translate_engine,
+        data.overwrite,
+    )
     return tasks
 
 
@@ -113,11 +127,22 @@ def remove_task(task_id: int, db: Session = Depends(get_db)):
         try:
             from celery.result import AsyncResult
 
+            logger.info(
+                "Revoking running task before removal: task_id=%s celery_task_id=%s",
+                task_id,
+                task.celery_task_id,
+            )
             AsyncResult(task.celery_task_id).revoke(terminate=True)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(
+                "Failed to revoke running task before removal: task_id=%s celery_task_id=%s error=%s",
+                task_id,
+                task.celery_task_id,
+                exc,
+            )
     db.delete(task)
     db.commit()
+    logger.info("Removed task record: task_id=%s", task_id)
 
     log_dir = app_settings.log_dir / str(task_id)
     legacy_log = app_settings.log_dir / f"{task_id}.log"
@@ -127,8 +152,8 @@ def remove_task(task_id: int, db: Session = Depends(get_db)):
 
             shutil.rmtree(log_dir, ignore_errors=True)
         legacy_log.unlink(missing_ok=True)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Failed to remove task logs: task_id=%s error=%s", task_id, exc)
 
 
 @router.post("/{task_id}/retry", response_model=TaskResponse)
@@ -149,6 +174,12 @@ def retry_task(task_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(task)
     process_subtitle_task.delay(task.id)
+    logger.info(
+        "Retried subtitle task: task_id=%s retry_count=%s celery_status=%s",
+        task.id,
+        task.retry_count,
+        task.status,
+    )
     return task
 
 

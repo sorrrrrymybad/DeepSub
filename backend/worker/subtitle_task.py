@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -92,8 +93,8 @@ def _update_task(db, task_id: int, **kwargs) -> None:
             for key, value in kwargs.items()
         }
         redis_client.publish("task_updates", json.dumps({"task_id": task_id, **payload}))
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Failed to publish task update for task %s: %s", task_id, exc)
 
 
 def _build_translate_engine(engine_name: str, db):
@@ -161,22 +162,42 @@ def _normalize_translated_text(text: str) -> str:
     return re.sub(r"[,，]\s*$", " ", text)
 
 
-def _load_cached_translations(jsonl_path: Path, expected_count: int) -> list[str | None]:
+def _load_cached_translations(
+    jsonl_path: Path,
+    expected_count: int,
+    cache_logger: logging.Logger | None = None,
+) -> list[str | None]:
     cached: list[str | None] = [None] * expected_count
     if not jsonl_path.exists():
         return cached
+    active_logger = cache_logger or logger
 
     with open(jsonl_path, "r", encoding="utf-8") as f:
-        for line in f:
+        for line_number, line in enumerate(f, start=1):
             try:
                 record = json.loads(line)
                 start, end = record["segment_range"]
                 if not isinstance(start, int) or not isinstance(end, int):
+                    active_logger.warning(
+                        "Skipping invalid cached translation line %s in %s: invalid segment_range types",
+                        line_number,
+                        jsonl_path,
+                    )
                     continue
                 if start < 0 or end > expected_count or start >= end:
+                    active_logger.warning(
+                        "Skipping invalid cached translation line %s in %s: segment_range out of bounds",
+                        line_number,
+                        jsonl_path,
+                    )
                     continue
                 output = record.get("output")
                 if not isinstance(output, str):
+                    active_logger.warning(
+                        "Skipping invalid cached translation line %s in %s: missing output",
+                        line_number,
+                        jsonl_path,
+                    )
                     continue
                 span = end - start
                 translated = (
@@ -185,8 +206,19 @@ def _load_cached_translations(jsonl_path: Path, expected_count: int) -> list[str
                     else parse_indexed_translation_response(output, expected_count=span)
                 )
                 if len(translated) != span:
+                    active_logger.warning(
+                        "Skipping invalid cached translation line %s in %s: output count mismatch",
+                        line_number,
+                        jsonl_path,
+                    )
                     continue
-            except Exception:
+            except Exception as exc:
+                active_logger.warning(
+                    "Skipping invalid cached translation line %s in %s: %s",
+                    line_number,
+                    jsonl_path,
+                    exc,
+                )
                 continue
 
             for index, text in enumerate(translated, start=start):
@@ -305,7 +337,12 @@ def prepare_source_video(task, db, tmp_dir: str, task_logger: logging.Logger) ->
             raise ValueError("SMB server not found")
 
         client = SMBClient.from_server_model(server)
-        task_logger.info("Downloading video from SMB...")
+        task_logger.info(
+            "Preparing SMB video download: server_id=%s remote=%s local=%s",
+            task.smb_server_id,
+            task.file_path,
+            local_video,
+        )
         return local_video, client
 
     source_path = Path(task.file_path)
@@ -319,7 +356,14 @@ def prepare_source_video(task, db, tmp_dir: str, task_logger: logging.Logger) ->
         raise ValueError(f"Unsupported local video file: {task.file_path}")
 
     task_logger.info("Preparing local video: %s", task.file_path)
+    copy_started_at = time.monotonic()
     shutil.copy2(source_path, local_video)
+    task_logger.info(
+        "Copied local video to temp path: %s (size=%s bytes, elapsed=%.2fs)",
+        local_video,
+        Path(local_video).stat().st_size,
+        time.monotonic() - copy_started_at,
+    )
     return local_video, None
 
 
@@ -388,11 +432,22 @@ def write_output_subtitle(
         local_srt = os.path.join(tmp_dir, output_srt_name)
         os.makedirs(os.path.dirname(local_srt), exist_ok=True)
         segments_to_srt(segments, local_srt)
-        task_logger.info("Uploading SRT to SMB: %s", output_srt_remote)
+        upload_started_at = time.monotonic()
+        task_logger.info(
+            "Uploading SRT to SMB: remote=%s local=%s size=%s bytes",
+            output_srt_remote,
+            local_srt,
+            os.path.getsize(local_srt),
+        )
         client.upload_file(
             local_srt,
             output_srt_remote,
             progress_callback=progress_callback,
+        )
+        task_logger.info(
+            "Uploaded SRT to SMB: %s (elapsed=%.2fs)",
+            output_srt_remote,
+            time.monotonic() - upload_started_at,
         )
         return output_srt_remote
 
@@ -402,7 +457,11 @@ def write_output_subtitle(
         overwrite=task.overwrite,
     )
     segments_to_srt(segments, str(output_srt_path))
-    task_logger.info("Writing SRT to local path: %s", output_srt_path)
+    task_logger.info(
+        "Writing SRT to local path: %s (size=%s bytes)",
+        output_srt_path,
+        output_srt_path.stat().st_size,
+    )
     return str(output_srt_path)
 
 
@@ -448,10 +507,17 @@ def process_subtitle_task(self, task_id: int):
                     start=5,
                     end=20,
                 )
+                download_started_at = time.monotonic()
                 client.download_file(
                     task.file_path,
                     local_video,
                     progress_callback=download_progress,
+                )
+                task_logger.info(
+                    "Downloaded SMB video to temp path: %s (size=%s bytes, elapsed=%.2fs)",
+                    local_video,
+                    Path(local_video).stat().st_size,
+                    time.monotonic() - download_started_at,
                 )
             else:
                 _update_task(db, task_id, progress=20)
@@ -480,22 +546,48 @@ def process_subtitle_task(self, task_id: int):
             else:
                 task_logger.info("No subtitle tracks found, running STT...")
                 audio_path = os.path.join(tmp_dir, "audio.wav")
-                subprocess.run(
-                    [
-                        "ffmpeg",
-                        "-y",
-                        "-i",
-                        local_video,
-                        "-vn",
-                        "-ar",
-                        "16000",
-                        "-ac",
-                        "1",
-                        audio_path,
-                    ],
-                    check=True,
-                    capture_output=True,
-                    timeout=1800,
+                task_logger.info(
+                    "Extracting audio with ffmpeg: input=%s output=%s",
+                    local_video,
+                    audio_path,
+                )
+                audio_started_at = time.monotonic()
+                try:
+                    subprocess.run(
+                        [
+                            "ffmpeg",
+                            "-y",
+                            "-i",
+                            local_video,
+                            "-vn",
+                            "-ar",
+                            "16000",
+                            "-ac",
+                            "1",
+                            audio_path,
+                        ],
+                        check=True,
+                        capture_output=True,
+                        timeout=1800,
+                    )
+                except subprocess.CalledProcessError as exc:
+                    stderr = exc.stderr or ""
+                    if isinstance(stderr, bytes):
+                        stderr = stderr.decode(errors="replace")
+                    task_logger.error(
+                        "ffmpeg audio extraction failed: returncode=%s stderr=%s",
+                        exc.returncode,
+                        stderr[-1000:],
+                    )
+                    raise
+                except subprocess.TimeoutExpired:
+                    task_logger.error("ffmpeg audio extraction timed out after 1800s")
+                    raise
+                task_logger.info(
+                    "Audio extraction completed: %s (size=%s bytes, elapsed=%.2fs)",
+                    audio_path,
+                    Path(audio_path).stat().st_size,
+                    time.monotonic() - audio_started_at,
                 )
                 _update_task(db, task_id, progress=40)
                 stt_progress = make_stage_progress_callback(
@@ -539,6 +631,7 @@ def process_subtitle_task(self, task_id: int):
         cached_translations = _load_cached_translations(
             jsonl_path,
             expected_count=len(originals),
+            cache_logger=task_logger,
         )
         cached_count = _get_cached_translation_prefix_length(cached_translations)
         if cached_count > 0:
@@ -546,6 +639,17 @@ def process_subtitle_task(self, task_id: int):
                 "Using cached translation results for %s segment(s).",
                 cached_count,
             )
+        remaining_originals = originals[cached_count:]
+        task_logger.info(
+            "Translation config: engine=%s source_lang=%s target_lang=%s batch_size=%s total_segments=%s cached_segments=%s remaining_segments=%s",
+            task.translate_engine,
+            task.source_lang,
+            task.target_lang,
+            batch_size,
+            len(originals),
+            cached_count,
+            len(remaining_originals),
+        )
         batch_state = {"index": 0, "offset": cached_count}
 
         def batch_callback(
@@ -568,10 +672,16 @@ def process_subtitle_task(self, task_id: int):
                     f.write(json.dumps(record, ensure_ascii=False) + "\n")
             except Exception as exc:
                 task_logger.warning("Failed to append translate.jsonl: %s", exc)
+            task_logger.info(
+                "Translated batch %s: segment_range=%s-%s input_count=%s output_count=%s",
+                batch_state["index"],
+                start,
+                end,
+                len(inputs),
+                len(outputs),
+            )
             batch_state["index"] += 1
             batch_state["offset"] = end
-
-        remaining_originals = originals[cached_count:]
 
         def cached_translate_progress(ratio: float) -> None:
             if not originals:
@@ -598,6 +708,7 @@ def process_subtitle_task(self, task_id: int):
         else:
             translate_progress(1.0)
         translated = [_normalize_translated_text(text) for text in translated]
+        task_logger.info("Translation completed: translated_segments=%s", len(translated))
 
         try:
             bilingual_segments = [

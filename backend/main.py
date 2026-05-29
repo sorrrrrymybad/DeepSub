@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import shutil
 from contextlib import asynccontextmanager
 
@@ -20,30 +21,48 @@ from core.schema_migrations import run_schema_migrations
 from models.base import Base
 
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
 async def redis_subscriber():
     try:
         redis_client = aioredis.from_url(settings.redis_url)
         pubsub = redis_client.pubsub()
         await pubsub.subscribe("task_updates")
-    except Exception:
+        logger.info("Subscribed to Redis task_updates channel")
+    except Exception as exc:
+        logger.warning("Failed to subscribe to Redis task_updates channel: %s", exc)
         return
 
     try:
         async for message in pubsub.listen():
             if message["type"] == "message":
-                data = json.loads(message["data"])
-                await broadcast_task_update(data.pop("task_id"), data)
+                try:
+                    data = json.loads(message["data"])
+                    task_id = data.pop("task_id")
+                    await broadcast_task_update(task_id, data)
+                except Exception:
+                    logger.exception(
+                        "Failed to process Redis task update message: %r",
+                        message.get("data"),
+                    )
     finally:
         try:
             await pubsub.unsubscribe("task_updates")
             await pubsub.aclose()
             await redis_client.aclose()
-        except Exception:
-            pass
+            logger.info("Unsubscribed from Redis task_updates channel")
+        except Exception as exc:
+            logger.warning("Failed to close Redis task_updates subscriber: %s", exc)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Starting DeepSub backend lifespan initialization")
     Base.metadata.create_all(bind=engine)
     run_schema_migrations(engine)
     settings.data_dir.mkdir(parents=True, exist_ok=True)
@@ -55,6 +74,7 @@ async def lifespan(app: FastAPI):
         for child in settings.tmp_dir.iterdir():
             if child.is_dir():
                 shutil.rmtree(child, ignore_errors=True)
+                logger.info("Removed stale temp directory on startup: %s", child)
 
     subscriber_task = asyncio.create_task(redis_subscriber())
     try:
