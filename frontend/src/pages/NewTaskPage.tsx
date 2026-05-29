@@ -23,7 +23,7 @@ export default function NewTaskPage() {
   const [targetLang, setTargetLang] = useState('zh')
   const [sttEngine, setSttEngine] = useState('whisper_local')
   const [translateEngine, setTranslateEngine] = useState('openai')
-  const [overwrite, setOverwrite] = useState(false)
+  const [overwrite, setOverwrite] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
   const STT_ENGINES = [
