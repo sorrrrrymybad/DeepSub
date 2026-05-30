@@ -187,6 +187,8 @@ const en = {
     title: 'Task Logs #{{id}}',
     emptyState: 'No logs available.',
     failedLoad: 'Failed to load logs: {{msg}}',
+    showErrorDetails: 'Show error details',
+    hideErrorDetails: 'Hide error details',
   },
 } as const
 

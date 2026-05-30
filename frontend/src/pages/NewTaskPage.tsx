@@ -218,7 +218,7 @@ export default function NewTaskPage() {
                     <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
                       {t('newTaskPage.favoritePathsTitle')}
                     </p>
-                    <p className="break-words text-xs text-on-surface-variant">
+                    <p className="max-w-full [overflow-wrap:anywhere] text-xs text-on-surface-variant">
                       {currentPath}
                     </p>
                   </div>
@@ -242,14 +242,14 @@ export default function NewTaskPage() {
                         <button
                           type="button"
                           onClick={() => handleOpenFavoritePath(favoritePath)}
-                          className="min-w-0 flex-1 text-left"
+                          className="min-w-0 flex-1 overflow-hidden text-left"
                         >
                           <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-primary">
                             {favoritePath.type === 'smb'
                               ? t('newTaskPage.favoritePathSmb', { server: favoritePath.serverName ?? favoritePath.serverId })
                               : t('newTaskPage.favoritePathLocal')}
                           </span>
-                          <span className="block break-words text-xs font-medium text-on-surface">
+                          <span className="block max-w-full [overflow-wrap:anywhere] text-xs font-medium text-on-surface">
                             {favoritePath.path}
                           </span>
                         </button>

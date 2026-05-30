@@ -187,6 +187,8 @@ const zh = {
     title: '任务日志 #{{id}}',
     emptyState: '暂无日志。',
     failedLoad: '无法加载日志: {{msg}}',
+    showErrorDetails: '展开错误详情',
+    hideErrorDetails: '收起错误详情',
   },
 } as const
 
