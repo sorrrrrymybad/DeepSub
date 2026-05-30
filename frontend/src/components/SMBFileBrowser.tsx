@@ -63,7 +63,7 @@ export default function SMBFileBrowser({ serverId, path, selected, onPathChange,
   }
 
   return (
-    <div className="overflow-hidden rounded-[22px] border border-outline-variant bg-surface-container-lowest">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-[22px] border border-outline-variant bg-surface-container-lowest">
       <div className="flex flex-wrap items-center gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-4">
         <button
           type="button"
@@ -118,7 +118,7 @@ export default function SMBFileBrowser({ serverId, path, selected, onPathChange,
 
       </div>
 
-      <div className="max-h-[420px] overflow-auto">
+      <div className="max-h-[420px] overflow-y-auto overflow-x-hidden">
         {isLoading ? <p className="p-4 text-sm text-on-surface-variant">{t('fileBrowser.loadingState')}</p> : null}
         {isError ? <p className="p-4 text-sm text-on-error-container">{t('fileBrowser.loadFailed')}</p> : null}
         {!isLoading && !isError && visibleItems.length === 0 ? (
@@ -136,43 +136,43 @@ export default function SMBFileBrowser({ serverId, path, selected, onPathChange,
               return (
                 <div
                   key={entry.name}
-                  className="border-b border-outline-variant px-4 py-3 last:border-b-0"
+                  className="min-w-0 border-b border-outline-variant px-4 py-3 last:border-b-0"
                 >
                   {entry.is_dir ? (
                     <button
                       type="button"
                       onClick={() => navigate(entry)}
-                      className="flex w-full items-center gap-3 rounded-2xl px-1 py-1 text-left text-sm font-semibold text-on-surface transition-colors hover:text-primary"
+                      className="flex min-w-0 w-full items-center gap-3 rounded-2xl px-1 py-1 text-left text-sm font-semibold text-on-surface transition-colors hover:text-primary"
                     >
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-surface-container-low text-on-surface-variant">
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-surface-container-low text-on-surface-variant">
                         /
                       </span>
-                      <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+                      <span className="min-w-0 flex-1 overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere]">{entry.name}</span>
                     </button>
                   ) : supported ? (
-                    <label className="flex cursor-pointer items-center gap-3 rounded-2xl px-1 py-1">
+                    <label className="flex min-w-0 w-full cursor-pointer items-center gap-3 rounded-2xl px-1 py-1">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => onToggle(fullPath)}
-                        className="h-4 w-4 rounded border-outline-variant bg-surface custom-checkbox"
+                        className="h-4 w-4 shrink-0 rounded border-outline-variant bg-surface custom-checkbox"
                       />
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-primary-container text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-primary-container">
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary-container text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-on-primary-container">
                         VID
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-on-surface">
+                      <span className="min-w-0 flex-1 overflow-hidden text-sm font-medium leading-5 text-on-surface [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere]">
                         {entry.name}
                       </span>
-                      <span className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+                      <span className="shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
                         {(entry.size / 1024 / 1024).toFixed(0)} MB
                       </span>
                     </label>
                   ) : (
-                    <div className="flex items-center gap-3 rounded-2xl px-1 py-1 text-on-surface-variant">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-surface-container-low text-[0.68rem] font-semibold uppercase tracking-[0.14em]">
+                    <div className="flex min-w-0 w-full items-center gap-3 rounded-2xl px-1 py-1 text-on-surface-variant">
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-surface-container-low text-[0.68rem] font-semibold uppercase tracking-[0.14em]">
                         REF
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-sm">{entry.name}</span>
+                      <span className="min-w-0 flex-1 overflow-hidden text-sm [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere]">{entry.name}</span>
                     </div>
                   )}
                 </div>

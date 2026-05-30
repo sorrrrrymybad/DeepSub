@@ -10,6 +10,8 @@ interface LogSegment {
 
 const LOG_ENTRY_RE = /^\d{4}-\d{2}-\d{2}.*\[(INFO|WARNING|ERROR|CRITICAL|DEBUG)\]/
 const ERROR_RE = /\[(ERROR|CRITICAL)\]|Traceback|(?:^|\s)(Error|Exception):|Task failed|failed:|失败|错误/i
+const LOG_REFRESH_INTERVAL_MS = 2000
+const AUTO_SCROLL_THRESHOLD_PX = 48
 
 function isErrorLine(line: string): boolean {
   return ERROR_RE.test(line)
@@ -63,17 +65,42 @@ export default function TaskLogDrawer({ taskId, onClose }: { taskId: number; onC
   const [logs, setLogs] = useState('')
   const [expandedErrors, setExpandedErrors] = useState<Set<string>>(() => new Set())
   const bottomRef = useRef<HTMLDivElement>(null)
+  const logContentRef = useRef<HTMLDivElement>(null)
+  const shouldStickToBottomRef = useRef(true)
   const segments = useMemo(() => splitLogSegments(logs), [logs])
 
   useEffect(() => {
-    fetch(tasksApi.getLogsUrl(taskId))
-      .then(r => r.text())
-      .then(setLogs)
-      .catch((err) => setLogs(t('taskLogDrawer.failedLoad', { msg: err.message })))
+    let cancelled = false
+
+    const isNearBottom = () => {
+      const content = logContentRef.current
+      if (!content) return true
+      return content.scrollHeight - content.scrollTop - content.clientHeight <= AUTO_SCROLL_THRESHOLD_PX
+    }
+
+    const loadLogs = () => {
+      shouldStickToBottomRef.current = isNearBottom()
+      fetch(tasksApi.getLogsUrl(taskId))
+        .then(r => r.text())
+        .then((nextLogs) => {
+          if (!cancelled) setLogs(nextLogs)
+        })
+        .catch((err) => {
+          if (!cancelled) setLogs(t('taskLogDrawer.failedLoad', { msg: err.message }))
+        })
+    }
+
+    loadLogs()
+    const refreshTimer = window.setInterval(loadLogs, LOG_REFRESH_INTERVAL_MS)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(refreshTimer)
+    }
   }, [taskId, t])
 
   useEffect(() => {
-    if (bottomRef.current) {
+    if (bottomRef.current && shouldStickToBottomRef.current) {
       bottomRef.current.scrollIntoView()
     }
   }, [logs])
@@ -114,6 +141,7 @@ export default function TaskLogDrawer({ taskId, onClose }: { taskId: number; onC
         </div>
         <div
           data-testid="task-log-content"
+          ref={logContentRef}
           className="flex-1 overflow-y-auto overflow-x-hidden whitespace-pre-wrap bg-background p-4 font-mono text-xs leading-6 text-on-surface [overflow-wrap:anywhere] sm:p-6 sm:text-sm sm:leading-7"
         >
           {segments.length > 0 ? segments.map((segment) => {
