@@ -174,13 +174,13 @@ export default function NewTaskPage() {
         description={t('newTaskPage.heroDescription')}
       />
 
-      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
         <SectionCard
           eyebrow={t('newTaskPage.pipelineEyebrow')}
           title={t('newTaskPage.pipelineTitle')}
           description={t('newTaskPage.pipelineDescription')}
         >
-          <div className="flex flex-col gap-5">
+          <div className="flex min-w-0 flex-col gap-5">
             <div className="rounded-[20px] border border-outline-variant bg-surface-container-low p-4">
               <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
                 {t('newTaskPage.sourceTypeLabel')}
@@ -307,13 +307,13 @@ export default function NewTaskPage() {
           </div>
         </SectionCard>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <SectionCard
             eyebrow={t('newTaskPage.profileEyebrow')}
             title={t('newTaskPage.profileTitle')}
             description={t('newTaskPage.profileDescription')}
           >
-            <div className="grid gap-4">
+            <div className="grid min-w-0 gap-4">
               <EngineSelector
                 id="new-task-source-lang"
                 label={t('newTaskPage.sourceLanguageLabel')}
@@ -362,7 +362,7 @@ export default function NewTaskPage() {
             title={t('newTaskPage.reviewTitle')}
             description={t('newTaskPage.reviewDescription')}
           >
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               {selectedFiles.length > 0 ? (
                 <ul className="space-y-3">
                   {selectedFiles.map((filePath) => (

@@ -265,7 +265,7 @@
   }
 
   .section-card {
-    @apply rounded-[24px] border border-outline-variant bg-surface-container-lowest p-5 md:p-6;
+    @apply min-w-0 max-w-full overflow-hidden rounded-[24px] border border-outline-variant bg-surface-container-lowest p-5 md:p-6;
     box-shadow: var(--shadow-soft);
   }
 
